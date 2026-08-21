@@ -66,7 +66,8 @@ export class Live2DViewer extends LitElement {
   private rootResizeObserver: ResizeObserver | null = null;
   private recordedChunks: Blob[] = [];
   private isPanning: boolean = false;
-
+  private abortController: AbortController = new AbortController();
+  
   private touchPointers: Map<number, TouchPoint> = new Map();
   private initialPinchDist: number = 0;
   private initialScaleOnPinch: number = 0.9;
@@ -374,6 +375,30 @@ export class Live2DViewer extends LitElement {
     }
   `;
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    const wasAborted = this.abortController.signal.aborted;
+    if (wasAborted) {
+      this.abortController = new AbortController();
+      this.setupDragAndDrop();
+      this.setupPanListeners();
+      this.setupZoomListeners();
+      this.setupKeyboardShortcuts();
+    }
+    // WebGL context needs to be recreated
+    // Events can stay
+    // PIXI needs to be recreated because it is torn down on disconnect
+    this.updateComplete.then(() => {
+      if (!this.app) this.initPixi();
+      if (this.lastModelSource && !this.currentModel && this.app) {
+        void this.loadModelSource(this.lastModelSource);
+      } else if (this.currentModel && this.app) {
+        try { this.app.stage.addChild(this.currentModel); } catch {}
+        this.fitModel();
+      }
+    });
+  }
+
   override firstUpdated(): void {
     this.initPixi();
     this.setupDragAndDrop();
@@ -382,7 +407,63 @@ export class Live2DViewer extends LitElement {
     this.setupKeyboardShortcuts();
   }
 
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.abortController.abort();
+    if (this.mediaRecorder) {
+      try {
+        if (this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop();
+      } catch {}
+      try {
+        // stop captureStream tracks to release canvas capture
+        const stream = this.mediaRecorder.stream;
+        stream.getTracks().forEach((t) => t.stop());
+      } catch {}
+      this.mediaRecorder = null;
+      this.isRecording = false;
+    }
+    this.destroyPixi();
+  }
+
+  private ensureApp(): boolean {
+    if (this.app) return true;
+    this.initPixi();
+    return !!this.app;
+  }
+
+  private destroyPixi(): void {
+    if (this.rootResizeObserver) {
+      this.rootResizeObserver.disconnect();
+      this.rootResizeObserver = null;
+    }
+    if (this.currentModel) {
+      try {
+        this.app?.stage.removeChild(this.currentModel);
+      } catch {}
+      try {
+        this.currentModel.destroy({ children: true });
+      } catch {}
+      this.currentModel = null;
+    }
+    if (this.overlayGraphics) {
+      try {
+        this.overlayGraphics.destroy();
+      } catch {}
+      this.overlayGraphics = null;
+    }
+    if (this.app) {
+      try {
+        this.app.destroy(true, { children: true, texture: true, baseTexture: true });
+      } catch {}
+      this.app = null;
+    }
+    this.touchPointers.clear();
+    this.initialPinchDist = 0;
+    this.isPanning = false;
+  }
+
   private initPixi(): void {
+    if (this.app) return;
     const container = this.shadowRoot?.querySelector("#viewport");
     if (!container) return;
 
@@ -396,11 +477,11 @@ export class Live2DViewer extends LitElement {
     });
 
     container.appendChild(this.app!.view);
-    
+
     this.rootResizeObserver = new ResizeObserver(() => {
       this.resizeRenderer();
     });
-
+    
     this.rootResizeObserver.observe(this);
   }
 
@@ -445,7 +526,7 @@ export class Live2DViewer extends LitElement {
       try {
         container.setPointerCapture(pe.pointerId);
       } catch { }
-    });
+    }, { signal: this.abortController.signal });
 
     container.addEventListener("pointermove", (e: Event) => {
       const pe = e as PointerEvent;
@@ -510,7 +591,7 @@ export class Live2DViewer extends LitElement {
       this.panX = Math.round(initialPanX + (pe.clientX - startX));
       this.panY = Math.round(initialPanY + (pe.clientY - startY));
       this.updateView();
-    });
+    }, { signal: this.abortController.signal });
 
     const stopPointer = (e: Event) => {
       const pe = e as PointerEvent;
@@ -531,8 +612,8 @@ export class Live2DViewer extends LitElement {
       } catch { }
     };
 
-    container.addEventListener("pointerup", stopPointer);
-    container.addEventListener("pointercancel", stopPointer);
+    container.addEventListener("pointerup", stopPointer, { signal: this.abortController.signal });
+    container.addEventListener("pointercancel", stopPointer, { signal: this.abortController.signal });
   }
 
   private setupZoomListeners(): void {
@@ -568,7 +649,7 @@ export class Live2DViewer extends LitElement {
         this.scale = newScale;
         this.updateView();
       },
-      { passive: false }
+      { passive: false, signal: this.abortController.signal }
     );
   }
 
@@ -594,7 +675,7 @@ export class Live2DViewer extends LitElement {
         e.preventDefault();
         this.captureScreenshot();
       }
-    });
+    }, { signal: this.abortController.signal });
   }
 
   private updateView(): void {
@@ -838,10 +919,10 @@ export class Live2DViewer extends LitElement {
       this.app!.view.captureStream(60),
       { mimeType }
     );
-    this.mediaRecorder.ondataavailable = (e: BlobEvent) => {
+    this.mediaRecorder.addEventListener("dataavailable", (e: BlobEvent) => {
       if (e.data.size > 0) this.recordedChunks.push(e.data);
-    };
-    this.mediaRecorder.onstop = () => {
+    }, { signal: this.abortController.signal });
+    this.mediaRecorder.addEventListener("stop", () => {
       const blob = new Blob(this.recordedChunks, { type: mimeType });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -853,8 +934,14 @@ export class Live2DViewer extends LitElement {
       if (this.overlayGraphics) this.overlayGraphics!.visible = true;
       this.fitModel();
       this.statusMsg = "Video export complete!";
-    };
+    }, { signal: this.abortController.signal });
 
+    this.abortController.signal.addEventListener("abort", () => {
+      try { if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop(); } catch {}
+      try { this.mediaRecorder!.stream.getTracks().forEach((tr) => tr.stop()); } catch {}
+      this.mediaRecorder = null;
+      this.isRecording = false;
+    }, { once: true, signal: this.abortController.signal });
     this.mediaRecorder.start();
     this.isRecording = true;
     this.statusMsg = `Recording video (${target.width}x${target.height})...`;
@@ -865,8 +952,13 @@ export class Live2DViewer extends LitElement {
     if (typeof source === "string") this.selectedModelPath = source;
     this.statusMsg = `Loading model...`;
 
+    if (!this.ensureApp()) {
+      this.statusMsg = `Load failed: renderer not initialized`;
+      return;
+    }
+
     if (this.currentModel) {
-      this.app!.stage.removeChild(this.currentModel!);
+      try { this.app!.stage.removeChild(this.currentModel!); } catch {}
       this.currentModel.destroy({ children: true });
       this.currentModel = null;
     }
@@ -894,6 +986,7 @@ export class Live2DViewer extends LitElement {
         });
       }
 
+      if (!this.app) throw new Error("PIXI app not initialized");
       this.app!.stage.addChild(this.currentModel!);
       this.fitModel();
       this.playMotion();
@@ -966,18 +1059,18 @@ export class Live2DViewer extends LitElement {
       if (this.disableImportFile) return;
       e.preventDefault();
       this.isDragging = true;
-    });
+    }, { signal: this.abortController.signal });
     this.addEventListener("dragleave", (e: DragEvent) => {
       if (this.disableImportFile) return;
       if (!this.contains(e.relatedTarget as Node)) this.isDragging = false;
-    });
+    }, { signal: this.abortController.signal });
     this.addEventListener("drop", async (e: DragEvent) => {
       if (this.disableImportFile) return;
       e.preventDefault();
       this.isDragging = false;
       const files = e.dataTransfer?.files;
       if (files && files.length) await this.processDroppedFile(files[0]);
-    });
+    }, { signal: this.abortController.signal });
   }
 
   async processDroppedFile(file: File): Promise<void> {
