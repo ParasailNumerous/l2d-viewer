@@ -37,7 +37,7 @@ interface TouchPoint {
 export class Live2DViewer extends LitElement {
   @property({ type: String }) selectedModelPath: string = "";
   @property({ type: String }) archivePath?: string;
-  @property({ type: Boolean }) enableImportFile: boolean = true;
+  @property({ type: Boolean }) disableImportFile: boolean = false;
   @property({ type: Array }) motionGroups: string[] = [];
   @property({ type: String }) selectedGroup: string = "";
   @property({ type: Array }) motions: MotionItem[] = [];
@@ -958,13 +958,16 @@ export class Live2DViewer extends LitElement {
 
   private setupDragAndDrop(): void {
     this.addEventListener("dragover", (e: DragEvent) => {
+      if (this.disableImportFile) return;
       e.preventDefault();
       this.isDragging = true;
     });
     this.addEventListener("dragleave", (e: DragEvent) => {
+      if (this.disableImportFile) return;
       if (!this.contains(e.relatedTarget as Node)) this.isDragging = false;
     });
     this.addEventListener("drop", async (e: DragEvent) => {
+      if (this.disableImportFile) return;
       e.preventDefault();
       this.isDragging = false;
       const files = e.dataTransfer?.files;
@@ -1135,6 +1138,7 @@ export class Live2DViewer extends LitElement {
             <button
               type="button"
               class="drop-btn"
+              .hidden=${this.disableImportFile === true}
               @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
             >
@@ -1202,16 +1206,6 @@ export class Live2DViewer extends LitElement {
                 `
         : ""
       }
-          <input
-            id="zipInput"
-            type="file"
-            accept=".zip"
-            hidden
-            @change=${(e: Event) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) this.processDroppedFile(file);
-      }}
-          />
           <div class="control-group">
             <span class="section-label">Camera</span>
             <div class="row-group">
@@ -1222,9 +1216,9 @@ export class Live2DViewer extends LitElement {
                   type="number"
                   .value=${this.panX.toString()}
                   @input=${(e: Event) => {
-        this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
-        this.fitModel();
-      }}
+                    this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
+                    this.fitModel();
+                  }}
                 />
               </div>
               <div class="input-item">
@@ -1234,9 +1228,9 @@ export class Live2DViewer extends LitElement {
                   type="number"
                   .value=${this.panY.toString()}
                   @input=${(e: Event) => {
-        this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
-        this.fitModel();
-      }}
+                    this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
+                    this.fitModel();
+                  }}
                 />
               </div>
               <div class="input-item">
@@ -1248,9 +1242,9 @@ export class Live2DViewer extends LitElement {
                   step="0.05"
                   .value=${this.scale.toString()}
                   @input=${(e: Event) => {
-        this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
-        this.fitModel();
-      }}
+                    this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
+                    this.fitModel();
+                  }}
                 />
               </div>
               <button type="button" @click=${this.resetView}>
@@ -1268,9 +1262,9 @@ export class Live2DViewer extends LitElement {
               id="displayResolutionSelect"
               .value=${this.resolution}
               @change=${(e: Event) => {
-        this.resolution = (e.target as HTMLSelectElement).value;
-        this.resizeRenderer();
-      }}
+                this.resolution = (e.target as HTMLSelectElement).value;
+                this.resizeRenderer();
+              }}
             >
               <option value="device">Device</option>
               <option value="1">1x</option>
@@ -1289,9 +1283,9 @@ export class Live2DViewer extends LitElement {
                 type="checkbox"
                 .checked=${this.showFramingPreview}
                 @change=${(e: Event) => {
-        this.showFramingPreview = (e.target as HTMLInputElement).checked;
-        this.updateFramingOverlay();
-      }}
+                  this.showFramingPreview = (e.target as HTMLInputElement).checked;
+                  this.updateFramingOverlay();
+                }}
               />
             </div>
             <div class="toggle-row">
@@ -1302,13 +1296,13 @@ export class Live2DViewer extends LitElement {
                 type="checkbox"
                 .checked=${this.mouseTracking}
                 @change=${(e: Event) => {
-        this.mouseTracking = (e.target as HTMLInputElement).checked;
-        if (this.lastModelSource) {
-          this.loadModelSource(this.lastModelSource);
-        } else {
-          this.loadModelSource(this.selectedModelPath);
-        }
-      }}
+                  this.mouseTracking = (e.target as HTMLInputElement).checked;
+                  if (this.lastModelSource) {
+                    this.loadModelSource(this.lastModelSource);
+                  } else {
+                    this.loadModelSource(this.selectedModelPath);
+                  }
+                }}
               />
             </div>
           </div>
@@ -1320,11 +1314,24 @@ export class Live2DViewer extends LitElement {
         </div>
       </aside>
 
+      <input
+        id="zipInput"
+        type="file"
+        accept=".zip"
+        hidden
+        @change=${(e: Event) => {
+          if (this.disableImportFile === true) return;
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (file) this.processDroppedFile(file);
+        }}
+        />
+      
       <div class="small-screen-actions-container">
         <div class="small-screen-actions">
           <button
             type="button"
             class="drop-btn"
+            .hidden=${this.disableImportFile === true}
             @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
           >
