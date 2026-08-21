@@ -430,6 +430,10 @@ export class Live2DViewer extends LitElement {
     this.setupPanListeners();
     this.setupZoomListeners();
     this.setupKeyboardShortcuts();
+
+    if (this.archivePath) {
+      this.processArchivePath();
+    }
   }
 
   override disconnectedCallback(): void {
@@ -1143,6 +1147,14 @@ export class Live2DViewer extends LitElement {
     } catch (err: any) {
       this.statusMsg = `ZIP load failed: ${err.message || err}`;
     }
+  }
+
+  async processArchivePath() {
+    if (!this.archivePath) return;
+    const response = await fetch(this.archivePath);
+    const blob = await response.blob();
+    const file = new File([blob], "archive.zip");
+    this.processDroppedFile(file);
   }
 
   private handleTileKeydown<T>(
