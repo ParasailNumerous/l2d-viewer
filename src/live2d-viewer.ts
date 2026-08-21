@@ -394,6 +394,10 @@ export class Live2DViewer extends LitElement {
       font-weight: bold;
       pointer-events: none;
     }
+
+    [hidden] {
+      display: none !important;
+    }
   `;
 
   override connectedCallback(): void {
@@ -694,6 +698,7 @@ export class Live2DViewer extends LitElement {
 
       const key = e.key.toLowerCase();
       if (key === "i") {
+        if (this.disableImportFile) return;
         e.preventDefault();
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click();
       } else if (key === "r") {
@@ -1102,6 +1107,7 @@ export class Live2DViewer extends LitElement {
   }
 
   async processDroppedFile(file: File): Promise<void> {
+    if (this.disableImportFile) return;
     if (!file.name.toLowerCase().endsWith(".zip")) return;
     this.statusMsg = `Extracting ZIP: ${file.name}...`;
     try {
@@ -1342,7 +1348,7 @@ export class Live2DViewer extends LitElement {
           <button
             type="button"
             class="drop-btn"
-            .hidden=${this.disableImportFile === true}
+            ?hidden=${this.disableImportFile}
             @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
           >
@@ -1406,7 +1412,7 @@ export class Live2DViewer extends LitElement {
             <button
               type="button"
               class="drop-btn"
-              .hidden=${this.disableImportFile === true}
+              ?hidden=${this.disableImportFile}
               @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
             >
