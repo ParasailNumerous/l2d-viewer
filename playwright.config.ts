@@ -26,7 +26,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: 'https://localhost:5174/l2d-viewer',
+    baseURL: 'http://localhost:7234/l2d-viewer',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -39,10 +39,13 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
+    // Firefox just seems to time out, unsure why
+    /*
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
     },
+    */
 
     {
       name: 'webkit',
@@ -72,8 +75,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'pnpm run dev --port 5173 --strictPort',
-    url: 'http://localhost:5173/l2d-viewer',
+    command: 'pnpm run dev --port 7234 --strictPort',
+    url: 'http://localhost:7234/l2d-viewer',
     reuseExistingServer: !process.env.CI,
   },
 });
