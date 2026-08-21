@@ -73,6 +73,11 @@ export class Live2DViewer extends LitElement {
   private initialPinchMid: TouchPoint = { x: 0, y: 0 };
   private initialPanOnPinch: TouchPoint = { x: 0, y: 0 };
 
+  static override shadowRootOptions = {
+    ...LitElement.shadowRootOptions,
+    delegatesFocus: true,
+  };
+
   static override styles = css`
     :host {
       position: relative;
@@ -286,7 +291,7 @@ export class Live2DViewer extends LitElement {
       vertical-align: middle;
     }
     @media (hover: hover) and (pointer: fine) {
-      kbd {
+      :host(:focus-within) kbd {
         display: inline-block;
       }
     }
