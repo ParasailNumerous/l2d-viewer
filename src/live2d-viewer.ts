@@ -33,30 +33,29 @@ interface TouchPoint {
   y: number;
 }
 
-const DEFAULT_MODEL =
-  "/assets/assetbundles/actor2d/character/10301/live2d/talent/10301_talent.model3.json";
-
 @customElement("live2d-viewer")
 export class Live2DViewer extends LitElement {
-  @property({ type: String }) selectedModelPath: string = DEFAULT_MODEL;
+  @property({ type: String }) selectedModelPath: string = "";
+  @property({ type: String }) archivePath?: string;
+  @property({ type: Boolean }) enableImportFile: boolean = true;
   @property({ type: Array }) motionGroups: string[] = [];
   @property({ type: String }) selectedGroup: string = "";
   @property({ type: Array }) motions: MotionItem[] = [];
   @property({ type: String }) selectedMotion: string = "";
   @property({ type: Array }) expressions: ExpressionItem[] = [];
   @property({ type: String }) selectedExpression: string = "";
-  @property({ type: Number }) scale: number = 0.9;
-  @property({ type: String }) resolution: string = "device";
+  @property({ type: Number, reflect: true }) scale: number = 0.9;
+  @property({ type: String }) resolution: "device" | string = "device";
   @property({ type: String }) exportResolution: string = "viewport";
   @property({ type: Number }) customWidth: number = 1920;
   @property({ type: Number }) customHeight: number = 1080;
   @property({ type: Boolean }) showFramingPreview: boolean = true;
   @property({ type: Boolean }) mouseTracking: boolean = false;
-  @property({ type: String }) statusMsg: string = "Initializing Live2D engine...";
+  @property({ type: String }) statusMsg: string = "";
   @property({ type: Boolean }) isDragging: boolean = false;
   @property({ type: Boolean }) isRecording: boolean = false;
-  @property({ type: Number }) panX: number = 0;
-  @property({ type: Number }) panY: number = 0;
+  @property({ type: Number, reflect: true }) panX: number = 0;
+  @property({ type: Number, reflect: true }) panY: number = 0;
 
   private app: PIXI.Application | null = null;
   private currentModel: InstanceType<typeof Live2DModel> | null = null;
@@ -64,6 +63,7 @@ export class Live2DViewer extends LitElement {
   private lastModelSource: string | File[] | null = null;
   private overlayGraphics: PIXI.Graphics | null = null;
   private mediaRecorder: MediaRecorder | null = null;
+  private rootResizeObserver: ResizeObserver | null = null;
   private recordedChunks: Blob[] = [];
   private isPanning: boolean = false;
 
@@ -80,7 +80,22 @@ export class Live2DViewer extends LitElement {
       width: 100%;
       height: 100%;
       user-select: none;
-      --small-screen-sheet-height: 35vh;
+      contain: content;
+      container-type: inline-size;
+
+      --bg-color: 0% 0 0;
+      --fg-color: 100% 0 0;
+      --primary-color: 0.62 0.12 199.54;
+      --primary-fg-color: 1 0 0;
+      --secondary-color: 0.4203 0.1014 262.52;
+      --secondary-fg-color: 1 0 0;
+      --small-screen-sheet-height: 35%;
+
+      accent-color: oklch(var(--primary-color));
+      color-scheme: dark;
+      
+      background: oklch(var(--bg-color));
+      color: oklch(var(--fg-color));
     }
 
     * {
@@ -113,7 +128,7 @@ export class Live2DViewer extends LitElement {
       top: 0;
       left: 0;
       width: 420px;
-      max-height: calc(100vh - 32px);
+      max-height: calc(100% - 32px);
       padding: 4px;
       border-radius: 6px;
       overflow-y: auto;
@@ -288,7 +303,7 @@ export class Live2DViewer extends LitElement {
     .small-screen-actions {
       display: none;
     }
-    @media (max-width: 640px) {
+    @container (width < 640px) {
       aside {
         top: auto;
         bottom: 0;
@@ -356,7 +371,6 @@ export class Live2DViewer extends LitElement {
 
   override firstUpdated(): void {
     this.initPixi();
-    this.loadModelSource(this.selectedModelPath);
     this.setupDragAndDrop();
     this.setupPanListeners();
     this.setupZoomListeners();
@@ -377,7 +391,12 @@ export class Live2DViewer extends LitElement {
     });
 
     container.appendChild(this.app!.view);
-    window.addEventListener("resize", () => this.resizeRenderer());
+    
+    this.rootResizeObserver = new ResizeObserver(() => {
+      this.resizeRenderer();
+    });
+
+    this.rootResizeObserver.observe(this);
   }
 
   private setupPanListeners(): void {
@@ -420,7 +439,7 @@ export class Live2DViewer extends LitElement {
       }
       try {
         container.setPointerCapture(pe.pointerId);
-      } catch {}
+      } catch { }
     });
 
     container.addEventListener("pointermove", (e: Event) => {
@@ -460,22 +479,22 @@ export class Live2DViewer extends LitElement {
           // Pan so zoom is anchored at initialPinchMid, plus follow finger drag
           this.panX = Math.round(
             this.initialPanOnPinch.x +
-              (currentMid.x - this.initialPinchMid.x) +
-              (this.initialPinchMid.x - initialCx) * (1 - ratio)
+            (currentMid.x - this.initialPinchMid.x) +
+            (this.initialPinchMid.x - initialCx) * (1 - ratio)
           );
           this.panY = Math.round(
             this.initialPanOnPinch.y +
-              (currentMid.y - this.initialPinchMid.y) +
-              (this.initialPinchMid.y - initialCy) * (1 - ratio)
+            (currentMid.y - this.initialPinchMid.y) +
+            (this.initialPinchMid.y - initialCy) * (1 - ratio)
           );
         } else {
           this.panX = Math.round(
             this.initialPanOnPinch.x +
-              (currentMid.x - this.initialPinchMid.x)
+            (currentMid.x - this.initialPinchMid.x)
           );
           this.panY = Math.round(
             this.initialPanOnPinch.y +
-              (currentMid.y - this.initialPinchMid.y)
+            (currentMid.y - this.initialPinchMid.y)
           );
         }
         this.updateView();
@@ -504,7 +523,7 @@ export class Live2DViewer extends LitElement {
       if (this.touchPointers.size === 0) this.isPanning = false;
       try {
         container.releasePointerCapture(pe.pointerId);
-      } catch {}
+      } catch { }
     };
 
     container.addEventListener("pointerup", stopPointer);
@@ -549,7 +568,7 @@ export class Live2DViewer extends LitElement {
   }
 
   private setupKeyboardShortcuts(): void {
-    window.addEventListener("keydown", (e: KeyboardEvent) => {
+    this.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
       const isTyping =
@@ -596,14 +615,14 @@ export class Live2DViewer extends LitElement {
   }
 
   private isSmallScreen(): boolean {
-    return window.matchMedia("(max-width: 640px)").matches;
+    return this.clientWidth < 640;
   }
 
   private getSmallScreenSheetHeightPx(): number {
     const raw =
       getComputedStyle(this)
         .getPropertyValue("--small-screen-sheet-height")
-        .trim() || "35vh";
+        .trim() || "35%";
     if (raw.endsWith("vh")) return Math.round((parseFloat(raw) / 100) * this.clientHeight);
     if (raw.endsWith("px")) return Math.round(parseFloat(raw));
     if (raw.endsWith("dvh") || raw.endsWith("svh") || raw.endsWith("lvh"))
@@ -901,7 +920,7 @@ export class Live2DViewer extends LitElement {
   private updateMotionList(): void {
     const groupItems =
       (this.currentModelJson?.FileReferences?.Motions || {})[
-        this.selectedGroup
+      this.selectedGroup
       ] || [];
     this.motions = groupItems.map((m: any, idx: number) => ({
       label: m.File
@@ -1032,14 +1051,13 @@ export class Live2DViewer extends LitElement {
       <div
         class="tile-grid"
         @keydown=${(e: KeyboardEvent) =>
-          this.handleTileKeydown(e, items, selectedValue, onSelect, getValue)}
+        this.handleTileKeydown(e, items, selectedValue, onSelect, getValue)}
       >
-        ${
-          items.length
-            ? items.map((item) => {
-                const val = getValue ? getValue(item) : (item as unknown as string);
-                const lbl = getLabel ? getLabel(item) : (item as unknown as string);
-                return html`
+        ${items.length
+        ? items.map((item) => {
+          const val = getValue ? getValue(item) : (item as unknown as string);
+          const lbl = getLabel ? getLabel(item) : (item as unknown as string);
+          return html`
                   <button
                     type="button"
                     class="tile-btn ${selectedValue === val ? "active" : ""}"
@@ -1050,11 +1068,11 @@ export class Live2DViewer extends LitElement {
                     ${lbl}
                   </button>
                 `;
-              })
-            : html`
+        })
+        : html`
                 <div class="empty-state">None available</div>
               `
-        }
+      }
       </div>
     `;
   }
@@ -1063,12 +1081,11 @@ export class Live2DViewer extends LitElement {
     return html`
       <section id="viewport"></section>
 
-      ${
-        this.isDragging
-          ? html`
+      ${this.isDragging
+        ? html`
               <div class="drop-overlay"><span>Drop ZIP file</span></div>
             `
-          : ""
+        : ""
       }
 
       <aside>
@@ -1076,40 +1093,40 @@ export class Live2DViewer extends LitElement {
           <div class="control-group">
             <span class="section-label">Motion Group</span>
             ${this.renderTileGrid(
-              this.motionGroups,
-              this.selectedGroup,
-              (g: string) => {
-                this.selectedGroup = g;
-                this.updateMotionList();
-                this.playMotion();
-              }
-            )}
+        this.motionGroups,
+        this.selectedGroup,
+        (g: string) => {
+          this.selectedGroup = g;
+          this.updateMotionList();
+          this.playMotion();
+        }
+      )}
           </div>
           <div class="control-group">
             <span class="section-label">Motion</span>
             ${this.renderTileGrid(
-              this.motions,
-              this.selectedMotion,
-              (mVal: string) => {
-                this.selectedMotion = mVal;
-                this.playMotion();
-              },
-              (m) => m.label,
-              (m) => m.value
-            )}
+        this.motions,
+        this.selectedMotion,
+        (mVal: string) => {
+          this.selectedMotion = mVal;
+          this.playMotion();
+        },
+        (m) => m.label,
+        (m) => m.value
+      )}
           </div>
           <div class="control-group">
             <span class="section-label">Expression</span>
             ${this.renderTileGrid(
-              this.expressions,
-              this.selectedExpression,
-              (xVal: string) => {
-                this.selectedExpression = xVal;
-                this.playExpression();
-              },
-              (x) => x.name,
-              (x) => x.value
-            )}
+        this.expressions,
+        this.selectedExpression,
+        (xVal: string) => {
+          this.selectedExpression = xVal;
+          this.playExpression();
+        },
+        (x) => x.name,
+        (x) => x.value
+      )}
           </div>
         </section>
 
@@ -1119,7 +1136,7 @@ export class Live2DViewer extends LitElement {
               type="button"
               class="drop-btn"
               @click=${() =>
-                (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
+        (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
             >
               Import
               <kbd>I</kbd>
@@ -1138,9 +1155,9 @@ export class Live2DViewer extends LitElement {
                 id="exportResolutionSelect"
                 .value=${this.exportResolution}
                 @change=${(e: Event) => {
-                  this.exportResolution = (e.target as HTMLSelectElement).value;
-                  this.fitModel();
-                }}
+        this.exportResolution = (e.target as HTMLSelectElement).value;
+        this.fitModel();
+      }}
               >
                 <option value="viewport">Viewport</option>
                 <option value="720p">720p</option>
@@ -1150,9 +1167,8 @@ export class Live2DViewer extends LitElement {
               </select>
             </div>
           </div>
-          ${
-            this.exportResolution === "custom"
-              ? html`
+          ${this.exportResolution === "custom"
+        ? html`
                   <div class="row-custom">
                     <div class="input-item">
                       <label for="customW">Width</label>
@@ -1160,12 +1176,12 @@ export class Live2DViewer extends LitElement {
                         id="customW"
                         type="number"
                         min="100"
-                        .value=${this.customWidth}
+                        .value=${this.customWidth.toString()}
                         @input=${(e: Event) => {
-                          this.customWidth =
-                            Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
-                          this.fitModel();
-                        }}
+            this.customWidth =
+              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
+            this.fitModel();
+          }}
                       />
                     </div>
                     <div class="input-item">
@@ -1174,27 +1190,27 @@ export class Live2DViewer extends LitElement {
                         id="customH"
                         type="number"
                         min="100"
-                        .value=${this.customHeight}
+                        .value=${this.customHeight.toString()}
                         @input=${(e: Event) => {
-                          this.customHeight =
-                            Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
-                          this.fitModel();
-                        }}
+            this.customHeight =
+              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
+            this.fitModel();
+          }}
                       />
                     </div>
                   </div>
                 `
-              : ""
-          }
+        : ""
+      }
           <input
             id="zipInput"
             type="file"
             accept=".zip"
             hidden
             @change=${(e: Event) => {
-              const file = (e.target as HTMLInputElement).files?.[0];
-              if (file) this.processDroppedFile(file);
-            }}
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) this.processDroppedFile(file);
+      }}
           />
           <div class="control-group">
             <span class="section-label">Camera</span>
@@ -1204,11 +1220,11 @@ export class Live2DViewer extends LitElement {
                 <input
                   id="panXInput"
                   type="number"
-                  .value=${this.panX}
+                  .value=${this.panX.toString()}
                   @input=${(e: Event) => {
-                    this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
-                    this.fitModel();
-                  }}
+        this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
+        this.fitModel();
+      }}
                 />
               </div>
               <div class="input-item">
@@ -1216,11 +1232,11 @@ export class Live2DViewer extends LitElement {
                 <input
                   id="panYInput"
                   type="number"
-                  .value=${this.panY}
+                  .value=${this.panY.toString()}
                   @input=${(e: Event) => {
-                    this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
-                    this.fitModel();
-                  }}
+        this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
+        this.fitModel();
+      }}
                 />
               </div>
               <div class="input-item">
@@ -1230,11 +1246,11 @@ export class Live2DViewer extends LitElement {
                   type="number"
                   min="0.1"
                   step="0.05"
-                  .value=${this.scale}
+                  .value=${this.scale.toString()}
                   @input=${(e: Event) => {
-                    this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
-                    this.fitModel();
-                  }}
+        this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
+        this.fitModel();
+      }}
                 />
               </div>
               <button type="button" @click=${this.resetView}>
@@ -1252,9 +1268,9 @@ export class Live2DViewer extends LitElement {
               id="displayResolutionSelect"
               .value=${this.resolution}
               @change=${(e: Event) => {
-                this.resolution = (e.target as HTMLSelectElement).value;
-                this.resizeRenderer();
-              }}
+        this.resolution = (e.target as HTMLSelectElement).value;
+        this.resizeRenderer();
+      }}
             >
               <option value="device">Device</option>
               <option value="1">1x</option>
@@ -1273,9 +1289,9 @@ export class Live2DViewer extends LitElement {
                 type="checkbox"
                 .checked=${this.showFramingPreview}
                 @change=${(e: Event) => {
-                  this.showFramingPreview = (e.target as HTMLInputElement).checked;
-                  this.updateFramingOverlay();
-                }}
+        this.showFramingPreview = (e.target as HTMLInputElement).checked;
+        this.updateFramingOverlay();
+      }}
               />
             </div>
             <div class="toggle-row">
@@ -1286,13 +1302,13 @@ export class Live2DViewer extends LitElement {
                 type="checkbox"
                 .checked=${this.mouseTracking}
                 @change=${(e: Event) => {
-                  this.mouseTracking = (e.target as HTMLInputElement).checked;
-                  if (this.lastModelSource) {
-                    this.loadModelSource(this.lastModelSource);
-                  } else {
-                    this.loadModelSource(this.selectedModelPath);
-                  }
-                }}
+        this.mouseTracking = (e.target as HTMLInputElement).checked;
+        if (this.lastModelSource) {
+          this.loadModelSource(this.lastModelSource);
+        } else {
+          this.loadModelSource(this.selectedModelPath);
+        }
+      }}
               />
             </div>
           </div>
@@ -1310,7 +1326,7 @@ export class Live2DViewer extends LitElement {
             type="button"
             class="drop-btn"
             @click=${() =>
-              (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
+        (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
           >
             Import <kbd>I</kbd>
           </button>
