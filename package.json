@@ -1,0 +1,25 @@
+{
+  "name": "l2d-viewer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "fetch:deps": "node scripts/fetch-deps.mjs",
+    "fetch:deps:latest": "node scripts/fetch-deps.mjs --update-npm",
+    "predev": "node scripts/fetch-deps.mjs",
+    "prebuild": "node scripts/fetch-deps.mjs",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "lit": "^3.3.3",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "6.5.2"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  }
+}

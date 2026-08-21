@@ -1,0 +1,33 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  accent-color: oklch(var(--primary-color));
+  font-size: 1rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+
+  --bg-color: 0% 0 0;
+  --fg-color: 100% 0 0;
+  --primary-color: 0.62 0.12 199.54;
+  --primary-fg-color: 1 0 0;
+  --secondary-color: 0.4203 0.1014 262.52;
+  --secondary-fg-color: 1 0 0;
+  
+  background: oklch(var(--bg-color));
+  color: oklch(var(--fg-color));
+}
+
+live2d-viewer {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
