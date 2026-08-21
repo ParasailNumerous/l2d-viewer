@@ -112,7 +112,7 @@ export class Live2DViewer extends LitElement {
     aside {
       top: 0;
       left: 0;
-      width: 320px;
+      width: 420px;
       max-height: calc(100vh - 32px);
       padding: 4px;
       border-radius: 6px;
