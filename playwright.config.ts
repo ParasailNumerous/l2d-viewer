@@ -72,8 +72,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'pnpm run dev',
-    url: 'https://localhost:5174/l2d-viewer',
+    command: 'pnpm run dev --port 5173 --strictPort',
+    url: 'http://localhost:5173/l2d-viewer',
     reuseExistingServer: !process.env.CI,
   },
 });
