@@ -67,12 +67,16 @@ export class Live2DViewer extends LitElement {
   private recordedChunks: Blob[] = [];
   private isPanning: boolean = false;
   private abortController: AbortController = new AbortController();
-  
+
   private touchPointers: Map<number, TouchPoint> = new Map();
   private initialPinchDist: number = 0;
   private initialScaleOnPinch: number = 0.9;
   private initialPinchMid: TouchPoint = { x: 0, y: 0 };
   private initialPanOnPinch: TouchPoint = { x: 0, y: 0 };
+
+  private viewportPressedKeys: Set<string> = new Set();
+  private viewportKeyAnimationFrame: number | null = null;
+  private viewportKeyLastTime: number = 0;
 
   static override shadowRootOptions = {
     ...LitElement.shadowRootOptions,
@@ -303,9 +307,14 @@ export class Live2DViewer extends LitElement {
       background: oklch(var(--fg-color) / 0.1);
       vertical-align: middle;
     }
+    .keyboard-only {
+      display: none;
+    }
     @media (hover: hover) and (pointer: fine) {
-      :host(:focus-within) kbd {
-        display: inline-block;
+      :host(:focus-within) {
+        kbd, .keyboard-only {
+          display: inline-block;
+        }
       }
     }
 
@@ -421,6 +430,8 @@ export class Live2DViewer extends LitElement {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
+    this.viewportPressedKeys.clear();
+    this.stopKeyLoop();
     this.abortController.abort();
     if (this.mediaRecorder) {
       try {
@@ -493,7 +504,7 @@ export class Live2DViewer extends LitElement {
     this.rootResizeObserver = new ResizeObserver(() => {
       this.resizeRenderer();
     });
-    
+
     this.rootResizeObserver.observe(this);
   }
 
@@ -666,6 +677,11 @@ export class Live2DViewer extends LitElement {
   }
 
   private setupKeyboardShortcuts(): void {
+    this.addEventListener("keydown", (e: KeyboardEvent) => this.handleViewportKeydown(e), { signal: this.abortController.signal });
+    this.addEventListener("keyup", (e: KeyboardEvent) => this.handleViewportKeyup(e), { signal: this.abortController.signal });
+    window.addEventListener("keyup", (e: KeyboardEvent) => this.handleViewportKeyup(e), { signal: this.abortController.signal });
+    window.addEventListener("blur", () => this.handleViewportBlur(), { signal: this.abortController.signal });
+    this.addEventListener("blur", () => this.handleViewportBlur(), { signal: this.abortController.signal });
     this.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const tag = document.activeElement?.tagName;
@@ -1153,6 +1169,126 @@ export class Live2DViewer extends LitElement {
     });
   }
 
+  private isViewportControlKey(code: string): boolean {
+    return (
+      code === "ArrowUp" ||
+      code === "ArrowDown" ||
+      code === "ArrowLeft" ||
+      code === "ArrowRight" ||
+      code === "KeyW" ||
+      code === "KeyA" ||
+      code === "KeyS" ||
+      code === "KeyD" ||
+      code === "Minus" ||
+      code === "Equal" ||
+      code === "NumpadSubtract" ||
+      code === "NumpadAdd"
+    );
+  }
+
+  private handleViewportKeydown(e: KeyboardEvent): void {
+    if (!this.isViewportControlKey(e.code)) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = document.activeElement?.tagName;
+    const isTyping =
+      tag === "INPUT" ||
+      tag === "TEXTAREA" ||
+      tag === "SELECT" ||
+      (document.activeElement as HTMLElement | null)?.isContentEditable;
+    if (isTyping) return;
+    e.preventDefault();
+    const isFirstPress = !this.viewportPressedKeys.has(e.code);
+    this.viewportPressedKeys.add(e.code);
+    if (isFirstPress && this.viewportPressedKeys.size === 1) {
+      this.tickPressedKeys();
+    }
+    if (this.viewportKeyAnimationFrame === null) {
+      this.startKeyLoop();
+    }
+  }
+
+  private handleViewportKeyup(e: KeyboardEvent): void {
+    if (!this.viewportPressedKeys.has(e.code)) return;
+    this.viewportPressedKeys.delete(e.code);
+    if (this.viewportPressedKeys.size === 0) {
+      this.stopKeyLoop();
+    }
+  }
+
+  private handleViewportBlur(): void {
+    if (this.viewportPressedKeys.size === 0) return;
+    this.viewportPressedKeys.clear();
+    this.stopKeyLoop();
+  }
+
+  private startKeyLoop(): void {
+    if (this.viewportKeyAnimationFrame !== null) return;
+    this.viewportKeyLastTime = performance.now();
+    const loop = (_now: number) => {
+      this.viewportKeyAnimationFrame = window.requestAnimationFrame((t) => {
+        const dt = t - this.viewportKeyLastTime;
+        this.viewportKeyLastTime = t;
+        this.tickPressedKeys(dt);
+        if (this.viewportPressedKeys.size > 0) {
+          loop(t);
+        } else {
+          this.viewportKeyAnimationFrame = null;
+        }
+      });
+    };
+    this.viewportKeyAnimationFrame = window.requestAnimationFrame((t) => {
+      this.viewportKeyLastTime = t;
+      this.tickPressedKeys(0);
+      if (this.viewportPressedKeys.size > 0) loop(t);
+      else this.viewportKeyAnimationFrame = null;
+    });
+  }
+
+  private stopKeyLoop(): void {
+    if (this.viewportKeyAnimationFrame !== null) {
+      cancelAnimationFrame(this.viewportKeyAnimationFrame);
+      this.viewportKeyAnimationFrame = null;
+    }
+  }
+
+  private tickPressedKeys(dt: number = 16.6): void {
+    if (this.viewportPressedKeys.size === 0) return;
+    let deltaX = 0;
+    let deltaY = 0;
+    let deltaZ = 0;
+    if (this.viewportPressedKeys.has("ArrowUp") || this.viewportPressedKeys.has("KeyW")) deltaY += 1;
+    if (this.viewportPressedKeys.has("ArrowDown") || this.viewportPressedKeys.has("KeyS")) deltaY -= 1;
+    if (this.viewportPressedKeys.has("ArrowLeft") || this.viewportPressedKeys.has("KeyA")) deltaX -= 1;
+    if (this.viewportPressedKeys.has("ArrowRight") || this.viewportPressedKeys.has("KeyD")) deltaX += 1;
+    if (this.viewportPressedKeys.has("Minus") || this.viewportPressedKeys.has("NumpadSubtract")) deltaZ += 1;
+    if (this.viewportPressedKeys.has("Equal") || this.viewportPressedKeys.has("NumpadAdd")) deltaZ -= 1;
+
+    if (deltaX === 0 && deltaY === 0 && deltaZ === 0) return;
+
+    // Normalize diagonal so ArrowUp+ArrowRight isn't sqrt(2) faster
+    if (deltaX !== 0 && deltaY !== 0) {
+      const len = Math.hypot(deltaX, deltaY);
+      deltaX /= len;
+      deltaY /= len;
+    }
+
+    // Scale by deltaTime: base speed is per 60fps frame (16.6ms)
+    const timeScale = dt / (1000 / 60);
+    const panSpeed = 10 * timeScale;
+    const zoomSpeed = 0.05 * timeScale;
+    const oldScale = this.scale;
+    let newScale = oldScale * Math.exp(-deltaZ * zoomSpeed);
+    newScale = Math.min(40, Math.max(0.1, newScale));
+    newScale = Number(newScale.toFixed(3));
+
+    if (newScale !== oldScale) this.scale = newScale;
+
+    this.panX += Math.round(-deltaX * panSpeed);
+    this.panY += Math.round(deltaY * panSpeed);
+
+    this.updateView();
+  }
+
   private renderTileGrid<T>(
     items: T[],
     selectedValue: string,
@@ -1228,40 +1364,40 @@ export class Live2DViewer extends LitElement {
           <div class="control-group">
             <span class="section-label">Motion Group</span>
             ${this.renderTileGrid(
-        this.motionGroups,
-        this.selectedGroup,
-        (g: string) => {
-          this.selectedGroup = g;
-          this.updateMotionList();
-          this.playMotion();
-        }
-      )}
+          this.motionGroups,
+          this.selectedGroup,
+          (g: string) => {
+            this.selectedGroup = g;
+            this.updateMotionList();
+            this.playMotion();
+          }
+        )}
           </div>
           <div class="control-group">
             <span class="section-label">Motion</span>
             ${this.renderTileGrid(
-        this.motions,
-        this.selectedMotion,
-        (mVal: string) => {
-          this.selectedMotion = mVal;
-          this.playMotion();
-        },
-        (m) => m.label,
-        (m) => m.value
-      )}
+          this.motions,
+          this.selectedMotion,
+          (mVal: string) => {
+            this.selectedMotion = mVal;
+            this.playMotion();
+          },
+          (m) => m.label,
+          (m) => m.value
+        )}
           </div>
           <div class="control-group">
             <span class="section-label">Expression</span>
             ${this.renderTileGrid(
-        this.expressions,
-        this.selectedExpression,
-        (xVal: string) => {
-          this.selectedExpression = xVal;
-          this.playExpression();
-        },
-        (x) => x.name,
-        (x) => x.value
-      )}
+          this.expressions,
+          this.selectedExpression,
+          (xVal: string) => {
+            this.selectedExpression = xVal;
+            this.playExpression();
+          },
+          (x) => x.name,
+          (x) => x.value
+        )}
           </div>
         </section>
 
@@ -1339,7 +1475,13 @@ export class Live2DViewer extends LitElement {
         : ""
       }
           <div class="control-group">
-            <span class="section-label">Camera</span>
+            <!-- hacky refactor later -->
+            <span class="section-label" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+              Camera
+              <div style="flex-grow: 1;"></div>
+              <span class="keyboard-only">Pan <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></span>
+              <span class="keyboard-only">Zoom <kbd>-</kbd> / <kbd>=</kbd></span>
+            </span>
             <div class="row-group">
               <div class="input-item">
                 <label for="panXInput">X</label>
@@ -1348,9 +1490,9 @@ export class Live2DViewer extends LitElement {
                   type="number"
                   .value=${this.panX.toString()}
                   @input=${(e: Event) => {
-                    this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
-                    this.fitModel();
-                  }}
+        this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
+        this.fitModel();
+      }}
                 />
               </div>
               <div class="input-item">
@@ -1360,9 +1502,9 @@ export class Live2DViewer extends LitElement {
                   type="number"
                   .value=${this.panY.toString()}
                   @input=${(e: Event) => {
-                    this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
-                    this.fitModel();
-                  }}
+        this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
+        this.fitModel();
+      }}
                 />
               </div>
               <div class="input-item">
@@ -1374,9 +1516,9 @@ export class Live2DViewer extends LitElement {
                   step="0.05"
                   .value=${this.scale.toString()}
                   @input=${(e: Event) => {
-                    this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
-                    this.fitModel();
-                  }}
+        this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
+        this.fitModel();
+      }}
                 />
               </div>
               <button type="button" @click=${this.resetView}>
@@ -1394,9 +1536,9 @@ export class Live2DViewer extends LitElement {
               id="displayResolutionSelect"
               .value=${this.resolution}
               @change=${(e: Event) => {
-                this.resolution = (e.target as HTMLSelectElement).value;
-                this.resizeRenderer();
-              }}
+        this.resolution = (e.target as HTMLSelectElement).value;
+        this.resizeRenderer();
+      }}
             >
               <option value="device">Device</option>
               <option value="1">1x</option>
@@ -1415,9 +1557,9 @@ export class Live2DViewer extends LitElement {
                 type="checkbox"
                 .checked=${this.showFramingPreview}
                 @change=${(e: Event) => {
-                  this.showFramingPreview = (e.target as HTMLInputElement).checked;
-                  this.updateFramingOverlay();
-                }}
+        this.showFramingPreview = (e.target as HTMLInputElement).checked;
+        this.updateFramingOverlay();
+      }}
               />
             </div>
             <div class="toggle-row">
@@ -1428,13 +1570,13 @@ export class Live2DViewer extends LitElement {
                 type="checkbox"
                 .checked=${this.mouseTracking}
                 @change=${(e: Event) => {
-                  this.mouseTracking = (e.target as HTMLInputElement).checked;
-                  if (this.lastModelSource) {
-                    this.loadModelSource(this.lastModelSource);
-                  } else {
-                    this.loadModelSource(this.selectedModelPath);
-                  }
-                }}
+        this.mouseTracking = (e.target as HTMLInputElement).checked;
+        if (this.lastModelSource) {
+          this.loadModelSource(this.lastModelSource);
+        } else {
+          this.loadModelSource(this.selectedModelPath);
+        }
+      }}
               />
             </div>
           </div>
@@ -1450,13 +1592,13 @@ export class Live2DViewer extends LitElement {
         id="zipInput"
         type="file"
         accept=".zip"
-inert
+        inert
         aria-hidden="true"
         @change=${(e: Event) => {
-          if (this.disableImportFile === true) return;
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (file) this.processDroppedFile(file);
-        }}
+        if (this.disableImportFile === true) return;
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) this.processDroppedFile(file);
+      }}
         />
 
       <footer role="status">${this.statusMsg}</footer>
