@@ -282,6 +282,13 @@ export class Live2DViewer extends LitElement {
       background: oklch(var(--primary-color) / 0.9);
     }
 
+    /* WebKit workaround */
+    #zipInput {
+      position: absolute;
+      top: 0;
+      left: -100%;
+    }
+
     kbd {
       display: none;
       min-width: 1.5em;
@@ -1443,7 +1450,8 @@ export class Live2DViewer extends LitElement {
         id="zipInput"
         type="file"
         accept=".zip"
-        hidden
+inert
+        aria-hidden="true"
         @change=${(e: Event) => {
           if (this.disableImportFile === true) return;
           const file = (e.target as HTMLInputElement).files?.[0];
