@@ -1458,28 +1458,6 @@ inert
           if (file) this.processDroppedFile(file);
         }}
         />
-      
-      <div class="small-screen-actions-container">
-        <div class="small-screen-actions">
-          <button
-            type="button"
-            class="drop-btn"
-            .hidden=${this.disableImportFile === true}
-            @click=${() =>
-        (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
-          >
-            Import <kbd>I</kbd>
-          </button>
-        </div>
-        <div class="small-screen-actions">
-          <button type="button" @click=${this.captureScreenshot}>
-            Screenshot <kbd>F</kbd>
-          </button>
-          <button type="button" @click=${this.toggleRecording}>
-            ${this.isRecording ? "Stop" : "Record"} <kbd>R</kbd>
-          </button>
-        </div>
-      </div>
 
       <footer role="status">${this.statusMsg}</footer>
     `;
