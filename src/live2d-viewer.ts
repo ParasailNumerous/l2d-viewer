@@ -443,27 +443,41 @@ export class Live2DViewer extends LitElement {
           y: (pts[0].y + pts[1].y) / 2,
         };
         if (this.initialPinchDist > 0) {
-          this.scale = Math.min(
+          const rawScale = this.initialScaleOnPinch * (currentDist / this.initialPinchDist);
+          const newScale = Math.min(
             40,
-            Math.max(
-              0.1,
-              Number(
-                (
-                  this.initialScaleOnPinch *
-                  (currentDist / this.initialPinchDist)
-                ).toFixed(3)
-              )
-            )
+            Math.max(0.1, Number(rawScale.toFixed(3)))
+          );
+          const ratio = newScale / this.initialScaleOnPinch;
+          this.scale = newScale;
+
+          const frame = this.getFrameBounds();
+          const frameCx = frame.x + frame.width / 2;
+          const frameCy = frame.y + frame.height / 2;
+          const initialCx = frameCx + this.initialPanOnPinch.x;
+          const initialCy = frameCy + this.initialPanOnPinch.y;
+
+          // Pan so zoom is anchored at initialPinchMid, plus follow finger drag
+          this.panX = Math.round(
+            this.initialPanOnPinch.x +
+              (currentMid.x - this.initialPinchMid.x) +
+              (this.initialPinchMid.x - initialCx) * (1 - ratio)
+          );
+          this.panY = Math.round(
+            this.initialPanOnPinch.y +
+              (currentMid.y - this.initialPinchMid.y) +
+              (this.initialPinchMid.y - initialCy) * (1 - ratio)
+          );
+        } else {
+          this.panX = Math.round(
+            this.initialPanOnPinch.x +
+              (currentMid.x - this.initialPinchMid.x)
+          );
+          this.panY = Math.round(
+            this.initialPanOnPinch.y +
+              (currentMid.y - this.initialPinchMid.y)
           );
         }
-        this.panX = Math.round(
-          this.initialPanOnPinch.x +
-            (currentMid.x - this.initialPinchMid.x)
-        );
-        this.panY = Math.round(
-          this.initialPanOnPinch.y +
-            (currentMid.y - this.initialPinchMid.y)
-        );
         this.updateView();
         return;
       }
@@ -478,6 +492,15 @@ export class Live2DViewer extends LitElement {
       const pe = e as PointerEvent;
       this.touchPointers.delete(pe.pointerId);
       if (this.touchPointers.size < 2) this.initialPinchDist = 0;
+      if (this.touchPointers.size === 1) {
+        // Re-anchor single-finger pan to remaining finger to avoid jump
+        const remaining = Array.from(this.touchPointers.values())[0];
+        startX = remaining.x;
+        startY = remaining.y;
+        initialPanX = this.panX;
+        initialPanY = this.panY;
+        this.isPanning = true;
+      }
       if (this.touchPointers.size === 0) this.isPanning = false;
       try {
         container.releasePointerCapture(pe.pointerId);
