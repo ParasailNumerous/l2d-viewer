@@ -61,6 +61,7 @@ export class Live2DViewer extends LitElement {
   private app: PIXI.Application | null = null;
   private currentModel: InstanceType<typeof Live2DModel> | null = null;
   private currentModelJson: Record<string, unknown> & { FileReferences?: { Motions?: Record<string, { File?: string }[]>; Expressions?: { Name?: string; File?: string }[] } } | null = null;
+  private lastModelSource: string | File[] | null = null;
   private overlayGraphics: PIXI.Graphics | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
@@ -813,6 +814,8 @@ export class Live2DViewer extends LitElement {
   }
 
   async loadModelSource(source: string | File[]): Promise<void> {
+    this.lastModelSource = source;
+    if (typeof source === "string") this.selectedModelPath = source;
     this.statusMsg = `Loading model...`;
 
     if (this.currentModel) {
@@ -1261,7 +1264,11 @@ export class Live2DViewer extends LitElement {
                 .checked=${this.mouseTracking}
                 @change=${(e: Event) => {
                   this.mouseTracking = (e.target as HTMLInputElement).checked;
-                  this.loadModelSource(this.selectedModelPath);
+                  if (this.lastModelSource) {
+                    this.loadModelSource(this.lastModelSource);
+                  } else {
+                    this.loadModelSource(this.selectedModelPath);
+                  }
                 }}
               />
             </div>
