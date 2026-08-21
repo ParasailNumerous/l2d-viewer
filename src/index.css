@@ -6,6 +6,7 @@ body {
   height: 100%;
   overflow: hidden;
   accent-color: oklch(var(--primary-color));
+  color-scheme: dark;
   font-size: 1rem;
   font-family:
     system-ui,
