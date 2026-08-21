@@ -199,7 +199,9 @@ export class Live2DViewer extends LitElement {
       color: inherit;
       font: inherit;
       border: 1px solid oklch(var(--fg-color) / 0.5);
-      padding: 0.1rem;
+      min-height: 32px;
+      padding: 0 0.3rem;
+      line-height: 1;
 
       &:not(:disabled):where(:hover) {
         background: oklch(var(--fg-color) / 0.1);
@@ -214,6 +216,10 @@ export class Live2DViewer extends LitElement {
     button {
       cursor: pointer;
       border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .row-group {
@@ -282,13 +288,12 @@ export class Live2DViewer extends LitElement {
       padding: 0 0.25em;
       text-align: center;
       font-family: inherit;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       line-height: 1.4;
       border: 1px solid oklch(var(--fg-color) / 0.5);
-      border-bottom-width: 3px;
+      border-bottom-width: 2px;
       border-radius: 3px;
       background: oklch(var(--fg-color) / 0.1);
-      margin-left: 0.25em;
       vertical-align: middle;
     }
     @media (hover: hover) and (pointer: fine) {
