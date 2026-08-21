@@ -1,16 +1,33 @@
 {
   "name": "l2d-viewer",
-  "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "Live2D viewer web component",
+  "main": "./dist/live2d-viewer.js",
+  "module": "./dist/live2d-viewer.js",
+  "types": "./dist/live2d-viewer.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/live2d-viewer.d.ts",
+      "import": "./dist/live2d-viewer.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
   "scripts": {
     "fetch:deps": "node scripts/fetch-deps.mjs",
     "fetch:deps:latest": "node scripts/fetch-deps.mjs --update-npm",
     "predev": "node scripts/fetch-deps.mjs",
     "prebuild": "node scripts/fetch-deps.mjs",
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "build:pages": "vite build --config vite.pages.config.ts",
+    "preview": "vite preview",
+    "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
     "jszip": "^3.10.1",
@@ -23,5 +40,12 @@
     "@types/node": "^26.2.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.22.0",
+      "onFail": "download"
+    }
   }
 }
