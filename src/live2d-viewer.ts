@@ -1622,8 +1622,9 @@ export class Live2DViewer extends LitElement {
         </details>
         
         <!-- Credits -->
-        <div class="panel">
-          <span style="word-wrap: anywhere;">Based on <a target="_blank" href="https://github.com/lihaohong6/StellaSoraBot/blob/7f0064dc5a6f2cee75d03b594fcc239f3873df53/tools/live2d_viewer.html">https://github.com/lihaohong6/StellaSoraBot/blob/7f0064dc5a6f2cee75d03b594fcc239f3873df53/tools/live2d_viewer.html</a></span>
+        <div class="panel" style="word-wrap: anywhere;">
+          <span>Based on <a target="_blank" href="https://github.com/lihaohong6/StellaSoraBot/blob/7f0064dc5a6f2cee75d03b594fcc239f3873df53/tools/live2d_viewer.html">lihaohong6/StellaSoraBot Live2D viewer</a></span>
+          <span><a target="_blank" href="https://github.com/ParasailNumerous/l2d-viewer">Source code</a></span>
         </div>
       </aside>
 
