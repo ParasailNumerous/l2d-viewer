@@ -436,6 +436,12 @@ export class Live2DViewer extends LitElement {
     }
   }
 
+  override updated(changedProperties: Map<string, unknown>): void {
+    if (changedProperties.has("archivePath") && this.archivePath) {
+      this.processArchivePath();
+    }
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.viewportPressedKeys.clear();
@@ -1149,12 +1155,28 @@ export class Live2DViewer extends LitElement {
     }
   }
 
-  async processArchivePath() {
+  async processArchivePath(): Promise<void> {
     if (!this.archivePath) return;
-    const response = await fetch(this.archivePath);
-    const blob = await response.blob();
-    const file = new File([blob], "archive.zip");
-    this.processDroppedFile(file);
+    try {
+      this.statusMsg = `Fetching archive: ${this.archivePath}...`;
+      const response = await fetch(this.archivePath);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+      const blob = await response.blob();
+      let filename = "archive.zip";
+      try {
+        const url = new URL(this.archivePath, window.location.href);
+        const last = url.pathname.split("/").pop();
+        if (last?.toLowerCase().endsWith(".zip")) filename = last;
+      } catch {}
+      const file = new File([blob], filename);
+      await this.processDroppedFile(file);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(err);
+      this.statusMsg = `Archive load failed: ${msg}`;
+    }
   }
 
   private handleTileKeydown<T>(
