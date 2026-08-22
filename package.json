@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "type": "module",
   "description": "Live2D viewer web component",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ParasailNumerous/l2d-viewer.git"
+  },
   "main": "./dist/live2d-viewer.js",
   "module": "./dist/live2d-viewer.js",
   "types": "./dist/live2d-viewer.d.ts",
