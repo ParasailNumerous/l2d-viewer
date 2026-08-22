@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import * as PIXI from "pixi.js";
 import JSZip from "jszip";
@@ -437,7 +437,7 @@ export class Live2DViewer extends LitElement {
   }
 
   override updated(changedProperties: Map<string, unknown>): void {
-    if (changedProperties.has("archivePath") && this.archivePath) {
+    if (changedProperties.has("archivePath")) {
       this.processArchivePath();
     }
   }
@@ -1112,12 +1112,11 @@ export class Live2DViewer extends LitElement {
       e.preventDefault();
       this.isDragging = false;
       const files = e.dataTransfer?.files;
-      if (files && files.length) await this.processDroppedFile(files[0]);
+      if (files && files.length) await this.processArchiveFile(files[0]);
     }, { signal: this.abortController.signal });
   }
 
-  async processDroppedFile(file: File): Promise<void> {
-    if (this.disableImportFile) return;
+  async processArchiveFile(file: File): Promise<void> {
     if (!file.name.toLowerCase().endsWith(".zip")) return;
     this.statusMsg = `Extracting ZIP: ${file.name}...`;
     try {
@@ -1171,7 +1170,7 @@ export class Live2DViewer extends LitElement {
         if (last?.toLowerCase().endsWith(".zip")) filename = last;
       } catch {}
       const file = new File([blob], filename);
-      await this.processDroppedFile(file);
+      await this.processArchiveFile(file);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(err);
@@ -1637,7 +1636,7 @@ export class Live2DViewer extends LitElement {
         @change=${(e: Event) => {
         if (this.disableImportFile === true) return;
         const file = (e.target as HTMLInputElement).files?.[0];
-        if (file) this.processDroppedFile(file);
+        if (file) this.processArchiveFile(file);
       }}
         />
 

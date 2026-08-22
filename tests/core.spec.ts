@@ -66,14 +66,9 @@ test.describe('P1 core journeys', () => {
     expect(await page.evaluate(() => (document.querySelector('live2d-viewer') as any).statusMsg)).not.toMatch(/Loaded model successfully/);
   });
 
-  test('remove selected files clears input', async ({ page }) => {
+  test('archiveFile parameter loads file', async ({ page }) => {
     await gotoViewer(page);
-    await setInputFilesViaShadow(page, fixturePath);
+    await page.evaluate(() => ((document.querySelector("live2d-viewer") as any).archivePath = "https://cdn.jsdelivr.net/gh/ParasailNumerous/l2d-viewer@0.1.2/tests/fixtures/pacchivlnt.zip"));
     await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).statusMsg), { timeout: 15000 }).toMatch(/Loaded/);
-    // Mirrors: await page.getByLabel('Upload file').setInputFiles([]);
-    const handle = await page.evaluateHandle(() => (document.querySelector('live2d-viewer') as any).shadowRoot.querySelector('#zipInput'));
-    await (handle as any).setInputFiles([]);
-    await handle.dispose();
-    expect(await page.evaluate(() => ((document.querySelector('live2d-viewer') as any).shadowRoot.querySelector('#zipInput') as HTMLInputElement).files?.length)).toBe(0);
   });
 });
