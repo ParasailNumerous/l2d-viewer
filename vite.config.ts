@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 export default defineConfig(({ mode }) => {
   if (mode !== "production") {
     return {
-      base: "/l2d-viewer/",
+      base: "/l2d-viewer",
     };
   }
   return {
