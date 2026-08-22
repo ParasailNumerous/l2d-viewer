@@ -9,9 +9,10 @@ export default defineConfig(({ mode }) => {
   return {
     build: {
       lib: {
+        name: "Live2dViewer",
         entry: "src/live2d-viewer.ts",
-        formats: ["es"],
-        fileName: () => "live2d-viewer.js",
+        formats: ["es", "iife"],
+        fileName: "live2d-viewer"
       },
       outDir: "dist",
       emptyOutDir: true,
