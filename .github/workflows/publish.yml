@@ -22,4 +22,4 @@ jobs:
           cache: false
 
       - run: pnpm run build
-      - run: pnpm publish --provenance  # Or: npm stage publish
+      - run: pnpm publish --provenance --no-git-checks # Or: npm stage publish
