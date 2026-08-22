@@ -21,5 +21,4 @@ jobs:
           runtime: node@24
           cache: false
 
-      - run: pnpm run build
       - run: pnpm publish --provenance --no-git-checks # Or: npm stage publish
