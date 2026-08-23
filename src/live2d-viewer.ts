@@ -1,4 +1,4 @@
- import { LitElement, html, css } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import * as PIXI from "pixi.js";
 import JSZip from "jszip";
@@ -423,7 +423,7 @@ export class Live2DViewer extends LitElement {
       if (this.lastModelSource && !this.currentModel && this.app) {
         void this.loadModelSource(this.lastModelSource);
       } else if (this.currentModel && this.app) {
-        try { this.app.stage.addChild(this.currentModel); } catch {}
+        try { this.app.stage.addChild(this.currentModel); } catch { }
         this.fitModel();
       }
     });
@@ -451,12 +451,12 @@ export class Live2DViewer extends LitElement {
     if (this.mediaRecorder) {
       try {
         if (this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop();
-      } catch {}
+      } catch { }
       try {
         // stop captureStream tracks to release canvas capture
         const stream = this.mediaRecorder.stream;
         stream.getTracks().forEach((t) => t.stop());
-      } catch {}
+      } catch { }
       this.mediaRecorder = null;
       this.isRecording = false;
     }
@@ -477,22 +477,22 @@ export class Live2DViewer extends LitElement {
     if (this.currentModel) {
       try {
         this.app?.stage.removeChild(this.currentModel);
-      } catch {}
+      } catch { }
       try {
         this.currentModel.destroy({ children: true });
-      } catch {}
+      } catch { }
       this.currentModel = null;
     }
     if (this.overlayGraphics) {
       try {
         this.overlayGraphics.destroy();
-      } catch {}
+      } catch { }
       this.overlayGraphics = null;
     }
     if (this.app) {
       try {
         this.app.destroy(true, { children: true, texture: true, baseTexture: true });
-      } catch {}
+      } catch { }
       this.app = null;
     }
     this.touchPointers.clear();
@@ -981,8 +981,8 @@ export class Live2DViewer extends LitElement {
     }, { signal: this.abortController.signal });
 
     this.abortController.signal.addEventListener("abort", () => {
-      try { if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop(); } catch {}
-      try { this.mediaRecorder!.stream.getTracks().forEach((tr) => tr.stop()); } catch {}
+      try { if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop(); } catch { }
+      try { this.mediaRecorder!.stream.getTracks().forEach((tr) => tr.stop()); } catch { }
       this.mediaRecorder = null;
       this.isRecording = false;
     }, { once: true, signal: this.abortController.signal });
@@ -1002,7 +1002,7 @@ export class Live2DViewer extends LitElement {
     }
 
     if (this.currentModel) {
-      try { this.app!.stage.removeChild(this.currentModel!); } catch {}
+      try { this.app!.stage.removeChild(this.currentModel!); } catch { }
       this.currentModel.destroy({ children: true });
       this.currentModel = null;
     }
@@ -1169,7 +1169,7 @@ export class Live2DViewer extends LitElement {
         const url = new URL(this.archivePath, window.location.href);
         const last = url.pathname.split("/").pop();
         if (last?.toLowerCase().endsWith(".zip")) filename = last;
-      } catch {}
+      } catch { }
       const file = new File([blob], filename);
       await this.processArchiveFile(file);
     } catch (err: unknown) {
@@ -1212,8 +1212,8 @@ export class Live2DViewer extends LitElement {
   private isViewportControlKey(code: string): boolean {
     return (
       (this.enableArrowKeyPan && (code === "ArrowUp" ||
-      code === "ArrowDown" ||
-      code === "ArrowLeft" ||
+        code === "ArrowDown" ||
+        code === "ArrowLeft" ||
         code === "ArrowRight")) ||
       code === "KeyW" ||
       code === "KeyA" ||
