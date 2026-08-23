@@ -9,7 +9,7 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
-const CUBISM_URL = "https://cubism.live2d.com/sdk-web/core/06/live2dcubismcore.min.js";
+const CUBISM_URL = "https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js";
 const DEST = path.join(ROOT, "public/live2dcubismcore.min.js");
 
 async function fetchCubismCore() {
