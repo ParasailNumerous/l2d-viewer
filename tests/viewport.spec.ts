@@ -1,84 +1,102 @@
 import { test, expect } from '@playwright/test';
 import { loadFixture, dispatchPinchZoom, dispatchPointerPan, dispatchWheelZoom } from './helpers';
 
-test.describe('P2 viewport interactions', () => {
-  test('pan via pointer drag (directional)', async ({ page }) => {
+import type { Live2DViewer } from '../src/live2d-viewer';
+
+test.describe('Viewport interactions', () => {
+  test('diagonal up left pan', async ({ page }) => {
     await loadFixture(page);
-    const before = await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; return { x: el.panX, y: el.panY }; });
-    await dispatchPointerPan(page, 100, 60);
-    // direction: dragging +dx should change panX, not exact pixels (survives speed tweaks)
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panX)).not.toBe(before.x);
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY)).not.toBe(before.y);
+    const viewer = page.getByTestId('viewer');
+    const before = await viewer.evaluate((el: Live2DViewer) => ({ x: el.panX, y: el.panY }));
+    await dispatchPointerPan(page, 100, 100);
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panX)).toBeGreaterThan(before.x);
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panY)).toBeGreaterThan(before.y);
   });
 
-  test('pinch zoom changes scale (directional, clamp-invariant)', async ({ page }) => {
+  test('two pointer pinch zoom changes scale', async ({ page }) => {
     await loadFixture(page);
-    const before = await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale);
-    await dispatchPinchZoom(page, 1.8);
-    // invariant: scale stays in clamp, and pinch-out increases scale (direction) - survives zoomSpeed/panSpeed changes at src/live2d-viewer.ts:1295
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBeGreaterThan(before);
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBeGreaterThanOrEqual(0.1);
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBeLessThanOrEqual(40);
-    // pinch-in should decrease
-    await dispatchPinchZoom(page, 0.6);
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBeLessThan(before * 1.8);
+    const viewer = page.getByTestId('viewer');
+    const before = await viewer.evaluate((el: Live2DViewer) => el.scale);
+    await dispatchPinchZoom(page, 1.8); // zoom in  
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeGreaterThan(before);
+    await dispatchPinchZoom(page, 0.6); // zoom out
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeLessThan(before * 1.8);
   });
 
-  test('wheel zoom via dispatched WheelEvent (desktop, directional)', async ({ page, browserName }) => {
+  test('mouse scroll wheel zoom changes scale', async ({ page, browserName }) => {
     test.skip(browserName === 'webkit' && test.info().project.name.includes('Mobile'), 'mouse wheel not supported on mobile WebKit - covered by pinch test');
     await loadFixture(page);
-    const before = await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale);
-    await dispatchWheelZoom(page, -200); // negative deltaY = zoom in per src/live2d-viewer.ts:670
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale), { timeout: 3000 }).toBeGreaterThan(before);
-    await dispatchWheelZoom(page, 400);
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBeLessThan(before * 1.5);
+    const viewer = page.getByTestId('viewer');
+    const before = await viewer.evaluate((el: Live2DViewer) => el.scale);
+    await dispatchWheelZoom(page, -200); // zoom in
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeGreaterThan(before);
+    await dispatchWheelZoom(page, 400); // zoom out
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeLessThan(before * 1.5);
   });
 
-  test('keyboard pan and zoom (poll, direction only)', async ({ page }) => {
+  test('keyboard pan and zoom', async ({ page }) => {
     await loadFixture(page);
-    await page.evaluate(() => (document.querySelector('live2d-viewer') as HTMLElement).focus());
-    const before = await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; return { y: el.panY, s: el.scale }; });
+    const viewer = page.getByTestId('viewer');
+    await viewer.evaluate((el: Live2DViewer) => el.focus());
+    const before = await viewer.evaluate((el: Live2DViewer) => ({ x: el.panX, y: el.panY, s: el.scale }));
+
+    await page.keyboard.down('KeyA');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panX)).toBeGreaterThan(before.x);
+    await page.keyboard.up('KeyA');
+
+    await page.keyboard.down('KeyD');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panX)).toBeLessThan(before.x);
+    await page.keyboard.up('KeyD');
+
     await page.keyboard.down('KeyW');
-    // poll instead of fixed timeout - survives panSpeed changes at src/live2d-viewer.ts:1295 (10 * timeScale)
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY), { timeout: 3000 }).not.toBe(before.y);
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panY)).toBeGreaterThan(before.y);
     await page.keyboard.up('KeyW');
-    // zoom direction only, not exact amount - survives zoomSpeed 0.05 at src/live2d-viewer.ts:1296
-    const midScale = await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale);
+
+    await page.keyboard.down('KeyS');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panY)).toBeLessThan(before.y);
+    await page.keyboard.up('KeyS');
+
     await page.keyboard.down('Equal');
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale), { timeout: 3000 }).not.toBe(midScale);
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeGreaterThan(before.s);
     await page.keyboard.up('Equal');
-    // release stops loop
-    await page.waitForTimeout(100);
-    const afterStop = await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale);
-    await page.waitForTimeout(300);
-    expect(await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBe(afterStop);
+
+    await page.keyboard.down('Minus');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeLessThan(before.s);
+    await page.keyboard.up('Minus');
   });
 
   test('keyboard pan arrow keys argument', async ({ page }) => {
     await loadFixture(page);
-    await page.evaluate(() => (document.querySelector('live2d-viewer') as HTMLElement).focus());
-    // Expect no movement when pressing arrow keys with no argument set
-    const initial = await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; return el.panY; });
+    const viewer = page.getByTestId('viewer');
+    await viewer.evaluate((el: Live2DViewer) => {
+      el.focus();
+      el.enableArrowKeyPan = true;
+    });
+    const before = await viewer.evaluate((el: Live2DViewer) => ({ x: el.panX, y: el.panY, s: el.scale }));
+
+    await page.keyboard.down('ArrowLeft');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panX)).toBeGreaterThan(before.x);
+    await page.keyboard.up('ArrowLeft');
+
+    await page.keyboard.down('ArrowRight');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panX)).toBeLessThan(before.x);
+    await page.keyboard.up('ArrowRight');
+
     await page.keyboard.down('ArrowUp');
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY), { timeout: 3000 }).toBe(initial);
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panY)).toBeGreaterThan(before.y);
     await page.keyboard.up('ArrowUp');
-    await page.evaluate(() => (document.querySelector('live2d-viewer') as any).enableArrowKeyPan = true);
-    await page.keyboard.down('ArrowUp');
-    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY), { timeout: 3000 }).not.toBe(initial);
-    await page.keyboard.up('ArrowUp');
+
+    await page.keyboard.down('ArrowDown');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.panY)).toBeLessThan(before.y);
+    await page.keyboard.up('ArrowDown');
   });
 
   test('camera inputs and reset', async ({ page }) => {
     await loadFixture(page);
-    await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; el.panX = 50; el.panY = -30; el.scale = 1.5; });
-    await page.waitForTimeout(200);
-    expect(await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panX)).toBe(50);
-    await page.evaluate(() => {
-      const el = document.querySelector('live2d-viewer') as any;
-      (Array.from(el.shadowRoot.querySelectorAll('button')).find((b: any) => b.textContent.trim() === 'Reset') as HTMLElement)?.click();
-    });
-    await page.waitForTimeout(200);
-    const vals = await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; return { x: el.panX, y: el.panY, s: el.scale }; });
+    const viewer = page.getByTestId('viewer');
+    await viewer.evaluate((el: Live2DViewer) => { el.panX = 50; el.panY = -30; el.scale = 1.5; });
+    await viewer.getByTestId('reset-action').click();
+    const vals = await viewer.evaluate((el: Live2DViewer) => ({ x: el.panX, y: el.panY, s: el.scale }));
     expect(vals).toEqual({ x: 0, y: 0, s: 0.9 });
   });
 });

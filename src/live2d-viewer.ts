@@ -1358,6 +1358,7 @@ export class Live2DViewer extends LitElement {
                     class="tile-btn ${selectedValue === val ? "active" : ""}"
                     title=${lbl}
                     tabindex=${selectedValue === val ? "0" : "-1"}
+                    data-testid="tile-btn"
                     @click=${() => onSelect(val)}
                   >
                     ${lbl}
@@ -1374,7 +1375,7 @@ export class Live2DViewer extends LitElement {
 
   override render() {
     return html`
-      <section id="viewport" autofocus tabindex="0"></section>
+      <section id="viewport" data-testid="viewport" autofocus tabindex="0"></section>
 
       ${this.isDragging
         ? html`
@@ -1388,6 +1389,7 @@ export class Live2DViewer extends LitElement {
           <button
             type="button"
             class="drop-btn"
+            data-testid="import-action"
             ?hidden=${this.disableImportFile}
             @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
@@ -1396,18 +1398,18 @@ export class Live2DViewer extends LitElement {
           </button>
         </div>
         <div class="small-screen-actions">
-          <button type="button" @click=${this.captureScreenshot}>
+          <button type="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
             Screenshot <kbd>F</kbd>
           </button>
-          <button type="button" @click=${this.toggleRecording}>
+          <button type="button" data-testid="record-action" @click=${this.toggleRecording}>
             ${this.isRecording ? "Stop" : "Record"} <kbd>R</kbd>
           </button>
         </div>
       </div>
 
-      <aside>
+      <aside data-testid="controls">
         <section class="panel">
-          <div class="control-group">
+          <div class="control-group" data-testid="motion-group-collection">
             <span class="section-label">Motion Group</span>
             ${this.renderTileGrid(
           this.motionGroups,
@@ -1419,7 +1421,7 @@ export class Live2DViewer extends LitElement {
           }
         )}
           </div>
-          <div class="control-group">
+          <div class="control-group" data-testid="motion-collection">
             <span class="section-label">Motion</span>
             ${this.renderTileGrid(
           this.motions,
@@ -1432,7 +1434,7 @@ export class Live2DViewer extends LitElement {
           (m) => m.value
         )}
           </div>
-          <div class="control-group">
+          <div class="control-group" data-testid="expression-collection">
             <span class="section-label">Expression</span>
             ${this.renderTileGrid(
           this.expressions,
@@ -1452,6 +1454,7 @@ export class Live2DViewer extends LitElement {
             <button
               type="button"
               class="drop-btn"
+              data-testid="import-action"
               ?hidden=${this.disableImportFile}
               @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
@@ -1459,11 +1462,11 @@ export class Live2DViewer extends LitElement {
               Import
               <kbd>I</kbd>
             </button>
-            <button type="button" @click=${this.captureScreenshot}>
+            <button type="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
               Screenshot
               <kbd>F</kbd>
             </button>
-            <button type="button" @click=${this.toggleRecording}>
+            <button type="button" data-testid="record-action" @click=${this.toggleRecording}>
               ${this.isRecording ? "Stop recording" : "Start recording"}
               <kbd>R</kbd>
             </button>
@@ -1567,7 +1570,7 @@ export class Live2DViewer extends LitElement {
       }}
                 />
               </div>
-              <button type="button" @click=${this.resetView}>
+              <button type="button" data-testid="reset-action" @click=${this.resetView}>
                 Reset
               </button>
             </div>
@@ -1637,6 +1640,7 @@ export class Live2DViewer extends LitElement {
 
       <input
         id="zipInput"
+        data-testid="zip-input"
         type="file"
         accept=".zip"
         inert
@@ -1648,7 +1652,7 @@ export class Live2DViewer extends LitElement {
       }}
         />
 
-      <footer role="status">${this.statusMsg}</footer>
+      <footer role="status" data-testid="status">${this.statusMsg}</footer>
     `;
   }
 }
