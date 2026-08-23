@@ -100,7 +100,7 @@ export class Live2DViewer extends LitElement {
       --primary-fg-color: 1 0 0;
       --secondary-color: 0.4203 0.1014 262.52;
       --secondary-fg-color: 1 0 0;
-      --small-screen-sheet-height: 35%;
+      --small-screen-sheet-height: clamp(40%, 150px, 600px);
 
       accent-color: oklch(var(--primary-color));
       color-scheme: dark;
@@ -335,14 +335,14 @@ export class Live2DViewer extends LitElement {
     .small-screen-actions {
       display: none;
     }
-    @container (width < 640px) {
+    @container (width < 768px) {
       aside {
         top: auto;
         bottom: 0;
         left: 0;
         right: 0;
         width: 100%;
-        max-height: var(--small-screen-sheet-height);
+        height: var(--small-screen-sheet-height);
         padding: 8px 8px max(8px, env(safe-area-inset-bottom));
         border-radius: 12px 12px 0 0;
         overscroll-behavior: contain;
@@ -745,20 +745,20 @@ export class Live2DViewer extends LitElement {
   }
 
   private isSmallScreen(): boolean {
-    return this.clientWidth < 640;
+    return this.clientWidth < 768;
   }
 
   private getSmallScreenSheetHeightPx(): number {
     const raw =
       getComputedStyle(this)
         .getPropertyValue("--small-screen-sheet-height")
-        .trim() || "35%";
+        .trim() || "40%";
     if (raw.endsWith("vh")) return Math.round((parseFloat(raw) / 100) * this.clientHeight);
     if (raw.endsWith("px")) return Math.round(parseFloat(raw));
     if (raw.endsWith("dvh") || raw.endsWith("svh") || raw.endsWith("lvh"))
       return Math.round((parseFloat(raw) / 100) * this.clientHeight);
     const n = parseFloat(raw);
-    return Number.isFinite(n) ? Math.round(n) : Math.round(this.clientHeight * 0.35);
+    return Number.isFinite(n) ? Math.round(n) : Math.round(this.clientHeight * 40/100);
   }
 
   private getVisibleViewportHeight(): number {
