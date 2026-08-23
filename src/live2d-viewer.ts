@@ -430,10 +430,6 @@ export class Live2DViewer extends LitElement {
     this.setupPanListeners();
     this.setupZoomListeners();
     this.setupKeyboardShortcuts();
-
-    if (this.archivePath) {
-      this.processArchivePath();
-    }
   }
 
   override updated(changedProperties: Map<string, unknown>): void {
