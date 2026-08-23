@@ -125,6 +125,10 @@ export class Live2DViewer extends LitElement {
       &:active {
         cursor: grabbing;
       }
+      &:focus-visible {
+        outline: 1px dotted oklch(var(--primary-color));
+        outline-offset: -8px;
+      }
     }
 
     aside,
@@ -1370,7 +1374,7 @@ export class Live2DViewer extends LitElement {
 
   override render() {
     return html`
-      <section id="viewport"></section>
+      <section id="viewport" autofocus tabindex="0"></section>
 
       ${this.isDragging
         ? html`
