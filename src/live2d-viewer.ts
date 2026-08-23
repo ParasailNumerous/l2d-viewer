@@ -51,6 +51,7 @@ export class Live2DViewer extends LitElement {
   @property({ type: Number }) customHeight: number = 1080;
   @property({ type: Boolean }) showFramingPreview: boolean = true;
   @property({ type: Boolean }) mouseTracking: boolean = false;
+  @property({ type: Boolean }) enableArrowKeyPan: boolean = false;
   @property({ type: String }) statusMsg: string = "";
   @property({ type: Boolean }) isDragging: boolean = false;
   @property({ type: Boolean }) isRecording: boolean = false;
@@ -1206,10 +1207,10 @@ export class Live2DViewer extends LitElement {
 
   private isViewportControlKey(code: string): boolean {
     return (
-      code === "ArrowUp" ||
+      (this.enableArrowKeyPan && (code === "ArrowUp" ||
       code === "ArrowDown" ||
       code === "ArrowLeft" ||
-      code === "ArrowRight" ||
+        code === "ArrowRight")) ||
       code === "KeyW" ||
       code === "KeyA" ||
       code === "KeyS" ||
@@ -1291,16 +1292,22 @@ export class Live2DViewer extends LitElement {
     let deltaX = 0;
     let deltaY = 0;
     let deltaZ = 0;
-    if (this.viewportPressedKeys.has("ArrowUp") || this.viewportPressedKeys.has("KeyW")) deltaY += 1;
-    if (this.viewportPressedKeys.has("ArrowDown") || this.viewportPressedKeys.has("KeyS")) deltaY -= 1;
-    if (this.viewportPressedKeys.has("ArrowLeft") || this.viewportPressedKeys.has("KeyA")) deltaX -= 1;
-    if (this.viewportPressedKeys.has("ArrowRight") || this.viewportPressedKeys.has("KeyD")) deltaX += 1;
+    if (this.enableArrowKeyPan) {
+      if (this.viewportPressedKeys.has("ArrowUp")) deltaY += 1;
+      if (this.viewportPressedKeys.has("ArrowDown")) deltaY -= 1;
+      if (this.viewportPressedKeys.has("ArrowLeft")) deltaX -= 1;
+      if (this.viewportPressedKeys.has("ArrowRight")) deltaX += 1;
+    }
+    if (this.viewportPressedKeys.has("KeyW")) deltaY += 1;
+    if (this.viewportPressedKeys.has("KeyS")) deltaY -= 1;
+    if (this.viewportPressedKeys.has("KeyA")) deltaX -= 1;
+    if (this.viewportPressedKeys.has("KeyD")) deltaX += 1;
     if (this.viewportPressedKeys.has("Minus") || this.viewportPressedKeys.has("NumpadSubtract")) deltaZ += 1;
     if (this.viewportPressedKeys.has("Equal") || this.viewportPressedKeys.has("NumpadAdd")) deltaZ -= 1;
 
     if (deltaX === 0 && deltaY === 0 && deltaZ === 0) return;
 
-    // Normalize diagonal so ArrowUp+ArrowRight isn't sqrt(2) faster
+    // Normalize diagonal so it isn't sqrt(2) faster
     if (deltaX !== 0 && deltaY !== 0) {
       const len = Math.hypot(deltaX, deltaY);
       deltaX /= len;
@@ -1514,7 +1521,7 @@ export class Live2DViewer extends LitElement {
             <span class="section-label" style="display: flex; flex-wrap: wrap; gap: 1rem;">
               Camera
               <div style="flex-grow: 1;"></div>
-              <span class="keyboard-only">Pan <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd></span>
+              <span class="keyboard-only">Pan <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
               <span class="keyboard-only">Zoom <kbd>-</kbd> / <kbd>=</kbd></span>
             </span>
             <div class="row-group">

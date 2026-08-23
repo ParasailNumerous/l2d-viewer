@@ -38,10 +38,10 @@ test.describe('P2 viewport interactions', () => {
     await loadFixture(page);
     await page.evaluate(() => (document.querySelector('live2d-viewer') as HTMLElement).focus());
     const before = await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; return { y: el.panY, s: el.scale }; });
-    await page.keyboard.down('ArrowUp');
+    await page.keyboard.down('KeyW');
     // poll instead of fixed timeout - survives panSpeed changes at src/live2d-viewer.ts:1295 (10 * timeScale)
     await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY), { timeout: 3000 }).not.toBe(before.y);
-    await page.keyboard.up('ArrowUp');
+    await page.keyboard.up('KeyW');
     // zoom direction only, not exact amount - survives zoomSpeed 0.05 at src/live2d-viewer.ts:1296
     const midScale = await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale);
     await page.keyboard.down('Equal');
@@ -52,6 +52,20 @@ test.describe('P2 viewport interactions', () => {
     const afterStop = await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale);
     await page.waitForTimeout(300);
     expect(await page.evaluate(() => (document.querySelector('live2d-viewer') as any).scale)).toBe(afterStop);
+  });
+
+  test('keyboard pan arrow keys argument', async ({ page }) => {
+    await loadFixture(page);
+    await page.evaluate(() => (document.querySelector('live2d-viewer') as HTMLElement).focus());
+    // Expect no movement when pressing arrow keys with no argument set
+    const initial = await page.evaluate(() => { const el = document.querySelector('live2d-viewer') as any; return el.panY; });
+    await page.keyboard.down('ArrowUp');
+    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY), { timeout: 3000 }).toBe(initial);
+    await page.keyboard.up('ArrowUp');
+    await page.evaluate(() => (document.querySelector('live2d-viewer') as any).enableArrowKeyPan = true);
+    await page.keyboard.down('ArrowUp');
+    await expect.poll(async () => await page.evaluate(() => (document.querySelector('live2d-viewer') as any).panY), { timeout: 3000 }).not.toBe(initial);
+    await page.keyboard.up('ArrowUp');
   });
 
   test('camera inputs and reset', async ({ page }) => {
