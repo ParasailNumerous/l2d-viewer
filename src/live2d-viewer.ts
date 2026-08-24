@@ -699,12 +699,12 @@ export class Live2DViewer extends LitElement {
     this.addEventListener("blur", () => this.handleViewportBlur(), { signal: this.abortController.signal });
     this.addEventListener("keydown", (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      const tag = document.activeElement?.tagName;
+      const tag = this.shadowRoot!.activeElement?.tagName;
       const isTyping =
         tag === "INPUT" ||
         tag === "TEXTAREA" ||
         tag === "SELECT" ||
-        (document.activeElement as HTMLElement | null)?.isContentEditable;
+        (this.shadowRoot!.activeElement as HTMLElement | null)?.isContentEditable;
       if (isTyping) return;
 
       const key = e.key.toLowerCase();
@@ -1229,12 +1229,12 @@ export class Live2DViewer extends LitElement {
   private handleViewportKeydown(e: KeyboardEvent): void {
     if (!this.isViewportControlKey(e.code)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const tag = document.activeElement?.tagName;
+    const tag = this.shadowRoot!.activeElement?.tagName;
     const isTyping =
       tag === "INPUT" ||
       tag === "TEXTAREA" ||
       tag === "SELECT" ||
-      (document.activeElement as HTMLElement | null)?.isContentEditable;
+      (this.shadowRoot!.activeElement as HTMLElement | null)?.isContentEditable;
     if (isTyping) return;
     e.preventDefault();
     const isFirstPress = !this.viewportPressedKeys.has(e.code);
