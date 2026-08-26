@@ -55,6 +55,7 @@ export class Live2DViewer extends LitElement {
   @property({ type: String }) statusMsg: string = "";
   @property({ type: Boolean }) isDragging: boolean = false;
   @property({ type: Boolean }) isRecording: boolean = false;
+  @property({ type: Boolean, reflect: true }) isFullscreen: boolean = false;
   @property({ type: Number, reflect: true }) panX: number = 0;
   @property({ type: Number, reflect: true }) panY: number = 0;
 
@@ -291,6 +292,12 @@ export class Live2DViewer extends LitElement {
       background: oklch(var(--primary-color) / 0.9);
     }
 
+    .fullscreen-action {
+      position: absolute;
+      inset-inline-end: 8px;
+      inset-block-end: 8px;
+    }
+
     /* WebKit workaround */
     #zipInput {
       position: absolute;
@@ -383,7 +390,7 @@ export class Live2DViewer extends LitElement {
           background: oklch(var(--bg-color) / 0.4);
         }
       }
-      aside .action-buttons > button {
+      aside .action-buttons > button, .fullscreen-action {
         display: none;
       }
     }
@@ -398,6 +405,11 @@ export class Live2DViewer extends LitElement {
       justify-content: center;
       font-weight: bold;
       pointer-events: none;
+    }
+
+    :host(:fullscreen) {
+      width: 100vw;
+      height: 100vh;
     }
 
     [hidden] {
@@ -435,6 +447,7 @@ export class Live2DViewer extends LitElement {
     this.setupPanListeners();
     this.setupZoomListeners();
     this.setupKeyboardShortcuts();
+    this.setupFullscreenListeners();
   }
 
   override updated(changedProperties: Map<string, unknown>): void {
@@ -691,6 +704,27 @@ export class Live2DViewer extends LitElement {
     );
   }
 
+  private setupFullscreenListeners(): void {
+    const handler = () => {
+      this.isFullscreen = !!document.fullscreenElement && document.fullscreenElement === this;
+    };
+    document.addEventListener("fullscreenchange", handler, { signal: this.abortController.signal });
+    document.addEventListener("fullscreenerror", handler, { signal: this.abortController.signal });
+  }
+
+  async toggleFullscreen(): Promise<void> {
+    try {
+      if (!document.fullscreenElement) {
+        await this.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.statusMsg = `Fullscreen failed: ${msg}`;
+    }
+  }
+
   private setupKeyboardShortcuts(): void {
     this.addEventListener("keydown", (e: KeyboardEvent) => this.handleViewportKeydown(e), { signal: this.abortController.signal });
     this.addEventListener("keyup", (e: KeyboardEvent) => this.handleViewportKeyup(e), { signal: this.abortController.signal });
@@ -715,9 +749,12 @@ export class Live2DViewer extends LitElement {
       } else if (key === "r") {
         e.preventDefault();
         this.toggleRecording();
-      } else if (key === "f") {
+      } else if (key === "e") {
         e.preventDefault();
         this.captureScreenshot();
+      } else if (key === "f") {
+        e.preventDefault();
+        this.toggleFullscreen();
       }
     }, { signal: this.abortController.signal });
   }
@@ -758,7 +795,7 @@ export class Live2DViewer extends LitElement {
     if (raw.endsWith("dvh") || raw.endsWith("svh") || raw.endsWith("lvh"))
       return Math.round((parseFloat(raw) / 100) * this.clientHeight);
     const n = parseFloat(raw);
-    return Number.isFinite(n) ? Math.round(n) : Math.round(this.clientHeight * 40/100);
+    return Number.isFinite(n) ? Math.round(n) : Math.round(this.clientHeight * 40 / 100);
   }
 
   private getVisibleViewportHeight(): number {
@@ -1398,8 +1435,12 @@ export class Live2DViewer extends LitElement {
           </button>
         </div>
         <div class="small-screen-actions">
+          <button type="button" data-testid="fullscreen-action" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
+            ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
+            <kbd>F</kbd>
+          </button>
           <button type="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
-            Screenshot <kbd>F</kbd>
+            Screenshot <kbd>E</kbd>
           </button>
           <button type="button" data-testid="record-action" @click=${this.toggleRecording}>
             ${this.isRecording ? "Stop" : "Record"} <kbd>R</kbd>
@@ -1464,7 +1505,7 @@ export class Live2DViewer extends LitElement {
             </button>
             <button type="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
               Screenshot
-              <kbd>F</kbd>
+              <kbd>E</kbd>
             </button>
             <button type="button" data-testid="record-action" @click=${this.toggleRecording}>
               ${this.isRecording ? "Stop recording" : "Start recording"}
@@ -1653,6 +1694,11 @@ export class Live2DViewer extends LitElement {
         />
 
       <footer role="status" data-testid="status">${this.statusMsg}</footer>
+
+      <button type="button" data-testid="fullscreen-action" class="fullscreen-action" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
+        ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
+        <kbd>F</kbd>
+      </button>
     `;
   }
 }

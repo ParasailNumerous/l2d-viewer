@@ -99,4 +99,56 @@ test.describe('Viewport interactions', () => {
     const vals = await viewer.evaluate((el: Live2DViewer) => ({ x: el.panX, y: el.panY, s: el.scale }));
     expect(vals).toEqual({ x: 0, y: 0, s: 0.9 });
   });
+
+  test('fullscreen toggle via button', async ({ page }) => {
+    await loadFixture(page);
+    const viewer = page.getByTestId('viewer');
+    await viewer.evaluate((el: Live2DViewer) => {
+      // stub el.requestFullscreen
+      el.requestFullscreen = function () {
+        Object.defineProperty(document, 'fullscreenElement', { value: el, configurable: true });
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+    });
+    // stub document.exitFullscreen
+    await page.evaluate(() => {
+      document.exitFullscreen = () => {
+        Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true });
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+    });
+    // This is done because there's the small screen and large screen action.
+    // Ideally, we would test these seperately... but this works for now.
+    const btn = viewer.getByTestId('fullscreen-action').last();
+    await btn.click();
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.isFullscreen)).toBe(true);
+    await btn.click();
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.isFullscreen)).toBe(false);
+  });
+
+  test('fullscreen toggle via keyboard shortcut', async ({ page }) => {
+    await loadFixture(page);
+    const viewer = page.getByTestId('viewer');
+    await viewer.evaluate((el: Live2DViewer) => {
+      el.focus();
+      el.requestFullscreen = function () {
+        Object.defineProperty(document, 'fullscreenElement', { value: el, configurable: true });
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+    });
+    await page.evaluate(() => {
+      document.exitFullscreen = () => {
+        Object.defineProperty(document, 'fullscreenElement', { value: null, configurable: true });
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+    });
+    await page.keyboard.press('F');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.isFullscreen)).toBe(true);
+    await page.keyboard.press('F');
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.isFullscreen)).toBe(false);
+  });
 });
