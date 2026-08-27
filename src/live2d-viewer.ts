@@ -284,7 +284,8 @@ export class Live2DViewer extends LitElement {
       }
     }
     
-    aside {
+    aside,
+    #status {
       position: absolute;
       z-index: 10;
       background: color-mix(in oklab, var(--bg-color) 60%, transparent);
