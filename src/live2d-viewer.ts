@@ -1,8 +1,10 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import * as PIXI from "pixi.js";
 import JSZip from "jszip";
 import { Live2DModel, MotionPriority } from "pixi-live2d-display/cubism4";
+
+import preflight from './preflight.css?inline';
 
 Live2DModel.registerTicker(PIXI.Ticker);
 
@@ -85,7 +87,7 @@ export class Live2DViewer extends LitElement {
     delegatesFocus: true,
   };
 
-  static override styles = css`
+  static override styles = [unsafeCSS(preflight), css`
     :host {
       position: relative;
       display: block;
@@ -95,23 +97,22 @@ export class Live2DViewer extends LitElement {
       contain: content;
       container-type: inline-size;
 
-      --bg-color: 0% 0 0;
-      --fg-color: 100% 0 0;
-      --primary-color: 0.62 0.12 199.54;
-      --primary-fg-color: 1 0 0;
-      --secondary-color: 0.4203 0.1014 262.52;
-      --secondary-fg-color: 1 0 0;
+      --bg-color: oklch(0% 0 0);
+      --fg-color: oklch(100% 0 0);
+      --surface-color: oklch(70% 0 0);
+      --primary-color: oklch(0.62 0.12 199.54);
+      --primary-fg-color: oklch(1 0 0);
+      --secondary-color: oklch(0.4203 0.1014 262.52);
+      --secondary-fg-color: oklch(1 0 0);
       --small-screen-sheet-height: clamp(40%, 150px, 600px);
+      --space: 4px;
+      --hover-mix: 8%;
+      --active-mix: 16%;
 
-      accent-color: oklch(var(--primary-color));
+      accent-color: var(--primary-color);
       color-scheme: dark;
-      
-      background: oklch(var(--bg-color));
-      color: oklch(var(--fg-color));
-    }
-
-    * {
-      box-sizing: border-box;
+      background: var(--bg-color);
+      color: var(--fg-color);
     }
 
     canvas {
@@ -121,205 +122,35 @@ export class Live2DViewer extends LitElement {
       touch-action: none;
     }
 
-    #viewport {
-      cursor: grab;
+    a {
+      color: var(--primary-color);
+      text-decoration: underline;
+      text-underline-offset: 0.15em;
+      @media (hover: hover) {
+        &:hover {
+          color: color-mix(in oklab, var(--primary-color), var(--fg-color) var(--hover-mix));
+        }
+      }
       &:active {
-        cursor: grabbing;
+        color: color-mix(in oklab, var(--primary-color), var(--fg-color) var(--active-mix));
       }
-      &:focus-visible {
-        outline: 1px dotted oklch(var(--primary-color));
-        outline-offset: -8px;
-      }
-    }
-
-    aside,
-    footer {
-      position: absolute;
-      z-index: 10;
-      background: oklch(var(--bg-color) / 0.6);
-      backdrop-filter: blur(4px);
-    }
-
-    aside {
-      top: 0;
-      left: 0;
-      width: 420px;
-      max-height: calc(100% - 32px);
-      padding: 4px;
-      border-radius: 6px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    footer {
-      right: 0;
-      top: 0;
-    }
-
-    form {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .control-group {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .tile-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-      overflow-y: auto;
-    }
-
-    .tile-btn {
-      border: none;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-height: 32px;
-    }
-    .tile-btn:focus-visible {
-      outline: 2px solid oklch(var(--primary-color));
-      outline-offset: 2px;
-    }
-
-    .tile-btn.active {
-      background: oklch(var(--secondary-color));
-      color: oklch(var(--secondary-fg-color));
-    }
-
-    .tile-btn.active:hover {
-      background: oklch(var(--secondary-color) / 0.9);
-    }
-
-    .empty-state {
-      grid-column: 1 / -1;
-      font-size: 0.8rem;
-      opacity: 0.5;
-    }
-
-    select,
-    input[type="number"],
-    button {
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      border: 1px solid oklch(var(--fg-color) / 0.5);
-      min-height: 32px;
-      padding: 0 0.3rem;
-      line-height: 1;
-
-      &:not(:disabled):where(:hover) {
-        background: oklch(var(--fg-color) / 0.1);
-      }
-    }
-
-    select option {
-      background: oklch(var(--bg-color));
-      color: inherit;
-    }
-
-    button {
-      cursor: pointer;
-      border-radius: 4px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .row-group {
-      display: flex;
-      gap: 4px;
-      align-items: end;
-    }
-
-    .row-custom {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px;
-    }
-
-    .input-item {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      gap: 4px;
-      flex: 1;
-    }
-
-    .input-item label {
-      color: oklch(var(--fg-color) / 0.8);
-    }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-    }
-
-    .toggle-row label {
-      flex-grow: 1;
-    }
-
-    .checkbox-custom {
-      width: 16px;
-      height: 16px;
-      margin: 0;
-      cursor: pointer;
-    }
-
-    .section-label {
-      padding: 0 0.25rem;
-    }
-
-    .action-buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px;
-    }
-
-    .drop-btn {
-      grid-column: 1 / -1;
-      background: oklch(var(--primary-color));
-      color: oklch(var(--primary-fg-color));
-      border: none;
-    }
-    .drop-btn:hover:not(:disabled) {
-      background: oklch(var(--primary-color) / 0.9);
-    }
-
-    .fullscreen-action {
-      position: absolute;
-      inset-inline-end: 8px;
-      inset-block-end: 8px;
-    }
-
-    /* WebKit workaround */
-    #zipInput {
-      position: absolute;
-      top: 0;
-      left: -100%;
     }
 
     kbd {
-      display: none;
       min-width: 1.5em;
       padding: 0 0.25em;
       text-align: center;
       font-family: inherit;
+      font-weight: 400;
       font-size: 0.8rem;
       line-height: 1.4;
-      border: 1px solid oklch(var(--fg-color) / 0.5);
+      border: 1px solid color-mix(in oklab, currentColor 50%, transparent);
       border-bottom-width: 2px;
-      border-radius: 3px;
-      background: oklch(var(--fg-color) / 0.1);
+      border-radius: 4px;
+      background: color-mix(in oklab, transparent, currentColor 10%);
       vertical-align: middle;
     }
-    .keyboard-only {
+    kbd, .keyboard-only {
       display: none;
     }
     @media (hover: hover) and (pointer: fine) {
@@ -330,81 +161,332 @@ export class Live2DViewer extends LitElement {
       }
     }
 
-    .panel {
-      padding: 4px;
+    select, input[type="number"], button {
+      --interactable-bg-color: transparent;
+      background-color: var(--interactable-bg-color);
+      border: 1px solid color-mix(in oklab, var(--fg-color) 50%, transparent);
       border-radius: 4px;
-      background: oklch(var(--fg-color) / 0.1);
+      min-width: 0;
+      min-height: calc(var(--space) * 8);
+      padding: 0 0.5rem;
+      line-height: 1;
+      text-align: start;
+      &:where(:not(:disabled)) {
+        @media (hover: hover) {
+          &:hover {
+            background: color-mix(in oklab, var(--interactable-bg-color), currentColor var(--hover-mix));
+          }
+        }
+        &:active {
+          background: color-mix(in oklab, var(--interactable-bg-color), currentColor var(--active-mix));
+        }
+      }
+    }
+
+    select option {
+      background: var(--bg-color);
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .checkbox-custom {
+      width: 1rem;
+      height: 1rem;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .stack {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: var(--space);
+    }
+
+    .cluster {
+      display: flex;
+      gap: var(--space);
+      align-items: end;
+    }
+
+    .cluster--spread {
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .field {
+      display: flex;
+      min-width: 0;
+      flex: 1;
+      gap: var(--space);
+    }
+
+    .grid-underflow {
+      display: grid;
+      /* cap out at 2 columns but underflow to 1column */
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(max(calc((100% - (var(--cols, 2) - 1) * var(--space)) / var(--cols, 2)), 9rem), 1fr)
+      );
+      gap: var(--space);
+    }
+
+    .grid-standard {
+      display: grid;
+      grid-template-columns: repeat(var(--cols, 2), 1fr);
+      gap: var(--space);
+    }
+
+    .grid-2 {
+      --cols: 2;
+    }
+
+    .grid-auto {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+      gap: var(--space);
+    }
+
+    .grid-span {
+      grid-column: 1 / -1;
+    }
+
+    .section-label {
+      font-weight: 500;
+      &.section-label--spread {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 1rem;
+        & .spacer {
+          flex-grow: 1;
+        }
+      }
+    }
+
+    .credits {
+      word-wrap: anywhere;
+    }
+
+    #viewport {
+      cursor: grab;
+      &:active {
+        cursor: grabbing;
+      }
+      &:focus-visible {
+        outline: 1px dotted var(--primary-color);
+        outline-offset: calc(var(--space) * -2);
+      }
+    }
+    
+    aside {
+      position: absolute;
+      z-index: 10;
+      background: color-mix(in oklab, var(--bg-color) 60%, transparent);
+      backdrop-filter: blur(4px);
+    }
+
+    aside {
+      top: 0;
+      left: 0;
+      width: 24rem;
+      min-width: 14rem;
+      resize: horizontal;
+      max-width: calc(100% - calc(var(--space) * 8));
+      max-height: calc(100% - calc(var(--space) * 8));
+      padding: var(--space);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space);
+    }
+
+    #status {
+      right: 0;
+      top: 0;
+    }
+
+    .panel {
+      padding: var(--space);
+      border-radius: 4px;
+      background: color-mix(in oklab, var(--surface-color) 20%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space);
+    }
+    .tile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+      max-height: 24rem;
+      overflow-y: auto;
+    }
+
+    .tile-btn {
+      border: none;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: calc(var(--space) * 8);
+      display: block;
+      position: relative;
+      &:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      &.active {
+        --interactable-bg-color: var(--secondary-color);
+        color: var(--secondary-fg-color);
+      }
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+      opacity: 0.5;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      .field {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .field--start, .field--end {
+        width: 1rem;
+        svg {
+          width: 1rem;
+          height: 1rem;
+          display: block;
+        }
+      }
+      .field--start {
+        inset-inline-start: 0.5rem;
+      }
+      .field--end {
+        inset-inline-end: 0.5rem;
+      }
+      &:has(.field--start) input {
+        padding-inline-start: 2rem;
+      }
+      &:has(.field--end) input {
+        padding-inline-end: 2rem;
+      }
+    }
+
+    .drop-btn {
+      background: var(--primary-color);
+      color: var(--primary-fg-color);
+      border: none;
+      &:not(:disabled) {
+        @media (hover: hover) {
+          &:hover {
+            background: color-mix(in oklab, var(--primary-color), currentColor var(--hover-mix));
+          }
+        }
+        &:active {
+          background: color-mix(in oklab, var(--primary-color), currentColor var(--active-mix));
+        }
+      }
+    }
+
+    .fullscreen-action {
+      --interactable-bg-color: color-mix(in oklab, var(--bg-color) 60%, transparent);
+      position: absolute;
+      padding: calc(var(--space) * 2);
+      backdrop-filter: blur(4px);
+      inset-inline-end: calc(var(--space) * 2);
+      inset-block-end: calc(var(--space) * 2);
+    }
+
+    /* WebKit workaround */
+    #zipInput {
+      position: absolute;
+      top: 0;
+      left: -100%;
     }
 
     .small-screen-actions {
       display: none;
-    }
-    @container (width < 768px) {
-      aside {
-        top: auto;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        height: var(--small-screen-sheet-height);
-        padding: 8px 8px max(8px, env(safe-area-inset-bottom));
-        border-radius: 12px 12px 0 0;
-        overscroll-behavior: contain;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        border: 1px solid oklch(var(--fg-color) / 0.12);
-        background: oklch(var(--bg-color) / 0.75);
-        backdrop-filter: blur(8px);
-      }
-      .tile-grid {
-        gap: 4px;
-      }
-      .small-screen-actions-container {
-        z-index: 11;
-        position: absolute;
-        inset-inline: 8px;
-        gap: 8px;
-        display: flex;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        bottom: calc(var(--small-screen-sheet-height) + 8px);
-        pointer-events: none;
-      }
-      .small-screen-actions {
-        display: flex;
-        gap: 4px;
-      }
-      :where(.small-screen-actions) button {
-        pointer-events: auto;
-        background: oklch(var(--bg-color) / 0.5);
-        backdrop-filter: blur(8px);
-        border: 1px solid oklch(var(--fg-color) / 0.25);
-        padding: 0 0.75rem;
-        min-height: 44px;
-        border-radius: 4px;
-        &:not(:disabled):hover {
-          background: oklch(var(--bg-color) / 0.4);
-        }
-      }
-      aside .action-buttons > button, .fullscreen-action {
-        display: none;
-      }
     }
 
     .drop-overlay {
       position: absolute;
       inset: 0;
       z-index: 20;
-      background: oklch(var(--bg-color) / 0.8);
+      background: color-mix(in oklab, var(--bg-color) 80%, transparent);
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: bold;
       pointer-events: none;
+    }
+
+    .small-screen-actions-container {
+      position: absolute;
+      display: none;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      z-index: 11;
+      inset-inline: calc(var(--space) * 2);
+      gap: calc(var(--space) * 2);
+      bottom: calc(var(--small-screen-sheet-height) + calc(var(--space) * 1));
+      pointer-events: none;
+    }
+    .small-screen-actions {
+      display: flex;
+      gap: var(--space);
+    }
+    .small-screen-actions button {
+      --interactable-bg-color: color-mix(in oklab, var(--bg-color) 60%, transparent);
+      pointer-events: auto;
+      backdrop-filter: blur(4px);
+      padding: 0 0.75rem;
+      min-height: 44px;
+      border-radius: 0.25rem;
+      &.drop-btn {
+        --interactable-bg-color: var(--primary-color);
+        border: none;
+      }
+    }
+
+    @container (width < 768px) {
+      aside {
+        inset: 0;
+        top: auto;
+        resize: none;
+        width: 100% !important;
+        min-width: auto;
+        max-width: none;
+        height: var(--small-screen-sheet-height);
+        padding: calc(var(--space) * 2) calc(var(--space) * 2) max(calc(var(--space) * 2), env(safe-area-inset-bottom));
+        border-radius: 12px 12px 0 0;
+        overscroll-behavior: contain;
+        display: flex;
+        flex-direction: column;
+        gap: calc(var(--space) * 2);
+        border: 1px solid color-mix(in oklab, var(--fg-color) 12%, transparent);
+        background: color-mix(in oklab, var(--bg-color) 75%, transparent);
+        backdrop-filter: blur(4px);
+      }
+      .small-screen-actions-container {
+        display: flex;
+      }
+      .small-screen-hidden {
+        display: none;
+      }
     }
 
     :host(:fullscreen) {
@@ -415,7 +497,7 @@ export class Live2DViewer extends LitElement {
     [hidden] {
       display: none !important;
     }
-  `;
+  `];
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -1398,7 +1480,7 @@ export class Live2DViewer extends LitElement {
                     data-testid="tile-btn"
                     @click=${() => onSelect(val)}
                   >
-                    ${lbl}
+                    <span class="tile-btn--label">${lbl}</span>
                   </button>
                 `;
         })
@@ -1435,14 +1517,14 @@ export class Live2DViewer extends LitElement {
           </button>
         </div>
         <div class="small-screen-actions">
-          <button type="button" data-testid="fullscreen-action" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
+          <button data-testid="fullscreen-action" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
             ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
             <kbd>F</kbd>
           </button>
-          <button type="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+          <button data-testid="screenshot-action" @click=${this.captureScreenshot}>
             Screenshot <kbd>E</kbd>
           </button>
-          <button type="button" data-testid="record-action" @click=${this.toggleRecording}>
+          <button data-testid="record-action" @click=${this.toggleRecording}>
             ${this.isRecording ? "Stop" : "Record"} <kbd>R</kbd>
           </button>
         </div>
@@ -1450,7 +1532,7 @@ export class Live2DViewer extends LitElement {
 
       <aside data-testid="controls">
         <section class="panel">
-          <div class="control-group" data-testid="motion-group-collection">
+          <div class="stack" data-testid="motion-group-collection">
             <span class="section-label">Motion Group</span>
             ${this.renderTileGrid(
           this.motionGroups,
@@ -1462,7 +1544,7 @@ export class Live2DViewer extends LitElement {
           }
         )}
           </div>
-          <div class="control-group" data-testid="motion-collection">
+          <div class="stack" data-testid="motion-collection">
             <span class="section-label">Motion</span>
             ${this.renderTileGrid(
           this.motions,
@@ -1475,7 +1557,7 @@ export class Live2DViewer extends LitElement {
           (m) => m.value
         )}
           </div>
-          <div class="control-group" data-testid="expression-collection">
+          <div class="stack" data-testid="expression-collection">
             <span class="section-label">Expression</span>
             ${this.renderTileGrid(
           this.expressions,
@@ -1491,10 +1573,10 @@ export class Live2DViewer extends LitElement {
         </section>
 
         <section class="panel">
-          <div class="action-buttons">
+          <div class="grid-underflow grid-2 small-screen-hidden">
             <button
               type="button"
-              class="drop-btn"
+              class="drop-btn grid-span"
               data-testid="import-action"
               ?hidden=${this.disableImportFile}
               @click=${() =>
@@ -1503,115 +1585,134 @@ export class Live2DViewer extends LitElement {
               Import
               <kbd>I</kbd>
             </button>
-            <button type="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+            <button data-testid="screenshot-action" @click=${this.captureScreenshot}>
               Screenshot
               <kbd>E</kbd>
             </button>
-            <button type="button" data-testid="record-action" @click=${this.toggleRecording}>
+            <button data-testid="record-action" @click=${this.toggleRecording}>
               ${this.isRecording ? "Stop recording" : "Start recording"}
               <kbd>R</kbd>
             </button>
-            <div class="input-item">
-              <label for="exportResolutionSelect">Export</label>
-              <select
-                id="exportResolutionSelect"
-                .value=${this.exportResolution}
-                @change=${(e: Event) => {
-        this.exportResolution = (e.target as HTMLSelectElement).value;
-        this.fitModel();
-      }}
-              >
-                <option value="viewport">Viewport</option>
-                <option value="720p">720p</option>
-                <option value="1080p">1080p</option>
-                <option value="4k">4K</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
+          </div>
+          <div class="cluster cluster--spread grid-span">
+            <label for="exportResolutionSelect">Export resolution</label>
+            <select
+              id="exportResolutionSelect"
+              .value=${this.exportResolution}
+              @change=${(e: Event) => {
+      this.exportResolution = (e.target as HTMLSelectElement).value;
+      this.fitModel();
+    }}
+            >
+              <option value="viewport">Viewport</option>
+              <option value="720p">720p</option>
+              <option value="1080p">1080p</option>
+              <option value="4k">4K</option>
+              <option value="custom">Custom</option>
+            </select>
           </div>
           ${this.exportResolution === "custom"
         ? html`
-                  <div class="row-custom">
-                    <div class="input-item">
-                      <label for="customW">Width</label>
-                      <input
-                        id="customW"
-                        type="number"
-                        min="100"
-                        .value=${this.customWidth.toString()}
-                        @input=${(e: Event) => {
-            this.customWidth =
-              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
-            this.fitModel();
-          }}
-                      />
+                  <div class="grid-2 grid-standard">
+                    <div class="field">
+                      <label class="input-wrap" for="customW">
+                        <span class="field field--start" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-move-horizontal-icon lucide-move-horizontal"><path d="m18 8 4 4-4 4"/><path d="M2 12h20"/><path d="m6 8-4 4 4 4"/></svg></span>
+                        <input
+                          id="customW"
+                          aria-label="Custom export width"
+                          title="Custom export width"
+                          type="number"
+                          min="100"
+                          .value=${this.customWidth.toString()}
+                          @input=${(e: Event) => {
+              this.customWidth =
+                Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
+              this.fitModel();
+            }}
+                        />
+                      </label>
                     </div>
-                    <div class="input-item">
-                      <label for="customH">Height</label>
-                      <input
-                        id="customH"
-                        type="number"
-                        min="100"
-                        .value=${this.customHeight.toString()}
-                        @input=${(e: Event) => {
-            this.customHeight =
-              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
-            this.fitModel();
-          }}
-                      />
+                    <div class="field">
+                      <label class="input-wrap" for="customH">
+                        <span class="field field--start" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-move-vertical-icon lucide-move-vertical"><path d="M12 2v20"/><path d="m8 18 4 4 4-4"/><path d="m8 6 4-4 4 4"/></svg></span>
+                        <input
+                          id="customH"
+                          aria-label="Custom export height"
+                          title="Custom export height"
+                          type="number"
+                          min="100"
+                          .value=${this.customHeight.toString()}
+                          @input=${(e: Event) => {
+              this.customHeight =
+                Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
+              this.fitModel();
+            }}
+                        />
+                      </label>
                     </div>
                   </div>
                 `
         : ""
       }
-          <div class="control-group">
-            <!-- hacky refactor later -->
-            <span class="section-label" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+          <div class="stack">
+            <span class="section-label section-label--spread">
               Camera
-              <div style="flex-grow: 1;"></div>
+              <div class="spacer"></div>
               <span class="keyboard-only">Pan <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
               <span class="keyboard-only">Zoom <kbd>-</kbd> / <kbd>=</kbd></span>
             </span>
-            <div class="row-group">
-              <div class="input-item">
-                <label for="panXInput">X</label>
-                <input
-                  id="panXInput"
-                  type="number"
-                  .value=${this.panX.toString()}
-                  @input=${(e: Event) => {
+            <div class="cluster">
+              <div class="field">
+                <label class="input-wrap" for="panXInput">
+                  <span class="field field--start" aria-hidden="true">X</span>
+                  <input
+                    id="panXInput"
+                    aria-label="Pan X"
+                    title="Pan X"
+                    type="number"
+                    .value=${this.panX.toString()}
+                    @input=${(e: Event) => {
         this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
         this.fitModel();
       }}
-                />
+                  />
+                </label>
               </div>
-              <div class="input-item">
-                <label for="panYInput">Y</label>
-                <input
-                  id="panYInput"
-                  type="number"
-                  .value=${this.panY.toString()}
-                  @input=${(e: Event) => {
+              <div class="field">
+                <label class="input-wrap" for="panYInput">
+                  <span class="field field--start" aria-hidden="true">Y</span>
+                  <input
+                    id="panYInput"
+                    aria-label="Pan Y"
+                    title="Pan Y"
+                    type="number"
+                    .value=${this.panY.toString()}
+                    @input=${(e: Event) => {
         this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
         this.fitModel();
       }}
-                />
+                  />
+                </label>
               </div>
-              <div class="input-item">
-                <label for="scaleInput">Scale</label>
-                <input
-                  id="scaleInput"
-                  type="number"
-                  min="0.1"
-                  step="0.05"
-                  .value=${this.scale.toString()}
-                  @input=${(e: Event) => {
+              <div class="field">
+                <label class="input-wrap" for="scaleInput">
+                  <span class="field field--start" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scaling-icon lucide-scaling"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M14 15H9v-5"/><path d="M16 3h5v5"/><path d="M21 3 9 15"/></svg></span>
+                  <input
+                    id="scaleInput"
+                    aria-label="Scale"
+                    title="Scale"
+                    type="number"
+                    min="0.1"
+                    step="0.05"
+                    .value=${this.scale.toString()}
+                    @input=${(e: Event) => {
         this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
         this.fitModel();
       }}
-                />
+                  />
+                </label>
               </div>
-              <button type="button" data-testid="reset-action" @click=${this.resetView}>
+              <button data-testid="reset-action" @click=${this.resetView}>
                 Reset
               </button>
             </div>
@@ -1620,7 +1721,7 @@ export class Live2DViewer extends LitElement {
 
         <details class="panel">
           <summary>Advanced</summary>
-          <div class="input-item">
+          <div class="cluster cluster--spread">
             <label for="displayResolutionSelect">Resolution scale</label>
             <select
               id="displayResolutionSelect"
@@ -1638,8 +1739,8 @@ export class Live2DViewer extends LitElement {
               <option value="3">3x</option>
             </select>
           </div>
-          <div class="control-group">
-            <div class="toggle-row">
+          <div class="stack">
+            <div class="cluster cluster--spread">
               <label for="showPreview">Framing guide</label>
               <input
                 id="showPreview"
@@ -1652,7 +1753,7 @@ export class Live2DViewer extends LitElement {
       }}
               />
             </div>
-            <div class="toggle-row">
+            <div class="cluster cluster--spread">
               <label for="mouseTrack">Mouse tracking</label>
               <input
                 id="mouseTrack"
@@ -1673,7 +1774,7 @@ export class Live2DViewer extends LitElement {
         </details>
         
         <!-- Credits -->
-        <div class="panel" style="word-wrap: anywhere;">
+        <div class="panel credits">
           <span>Based on <a target="_blank" href="https://github.com/lihaohong6/StellaSoraBot/blob/7f0064dc5a6f2cee75d03b594fcc239f3873df53/tools/live2d_viewer.html">lihaohong6/StellaSoraBot Live2D viewer</a></span>
           <span><a target="_blank" href="https://github.com/ParasailNumerous/l2d-viewer">Source code</a></span>
         </div>
@@ -1693,9 +1794,9 @@ export class Live2DViewer extends LitElement {
       }}
         />
 
-      <footer role="status" data-testid="status">${this.statusMsg}</footer>
+      <span id="status" role="status" data-testid="status">${this.statusMsg}</span>
 
-      <button type="button" data-testid="fullscreen-action" class="fullscreen-action" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
+      <button data-testid="fullscreen-action" class="fullscreen-action small-screen-hidden" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
         ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
         <kbd>F</kbd>
       </button>
