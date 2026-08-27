@@ -73,6 +73,7 @@ export class Live2DViewer extends LitElement {
   private abortController: AbortController = new AbortController();
 
   private touchPointers: Map<number, TouchPoint> = new Map();
+  private ignoredPointerIds: Set<number> = new Set();
   private initialPinchDist: number = 0;
   private initialScaleOnPinch: number = 0.9;
   private initialPinchMid: TouchPoint = { x: 0, y: 0 };
@@ -592,6 +593,7 @@ export class Live2DViewer extends LitElement {
       this.app = null;
     }
     this.touchPointers.clear();
+    this.ignoredPointerIds.clear();
     this.initialPinchDist = 0;
     this.isPanning = false;
   }
@@ -631,6 +633,11 @@ export class Live2DViewer extends LitElement {
     container.addEventListener("pointerdown", (e: Event) => {
       const pe = e as PointerEvent;
       if (pe.button !== 0 && pe.pointerType === "mouse") return;
+      if (this.ignoredPointerIds.has(pe.pointerId)) return;
+      if (this.touchPointers.size >= 2) {
+        this.ignoredPointerIds.add(pe.pointerId);
+        return;
+      }
       this.touchPointers.set(pe.pointerId, { x: pe.clientX, y: pe.clientY });
 
       if (this.touchPointers.size === 1) {
@@ -664,12 +671,12 @@ export class Live2DViewer extends LitElement {
 
     container.addEventListener("pointermove", (e: Event) => {
       const pe = e as PointerEvent;
-      if (this.touchPointers.has(pe.pointerId)) {
-        this.touchPointers.set(pe.pointerId, {
-          x: pe.clientX,
-          y: pe.clientY,
-        });
-      }
+      if (this.ignoredPointerIds.has(pe.pointerId)) return;
+      if (!this.touchPointers.has(pe.pointerId)) return;
+      this.touchPointers.set(pe.pointerId, {
+        x: pe.clientX,
+        y: pe.clientY,
+      });
 
       if (this.touchPointers.size === 2) {
         const pts = Array.from(this.touchPointers.values());
@@ -729,6 +736,11 @@ export class Live2DViewer extends LitElement {
 
     const stopPointer = (e: Event) => {
       const pe = e as PointerEvent;
+      if (this.ignoredPointerIds.has(pe.pointerId)) {
+        this.ignoredPointerIds.delete(pe.pointerId);
+        try { container.releasePointerCapture(pe.pointerId); } catch { }
+        return;
+      }
       this.touchPointers.delete(pe.pointerId);
       if (this.touchPointers.size < 2) this.initialPinchDist = 0;
       if (this.touchPointers.size === 1) {
