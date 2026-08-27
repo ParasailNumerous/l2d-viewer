@@ -100,7 +100,7 @@ test.describe('Viewport interactions', () => {
     expect(vals).toEqual({ x: 0, y: 0, s: 0.9 });
   });
 
-  test('fullscreen toggle via button', async ({ page }) => {
+  test('fullscreen toggle via button', async ({ page, browserName }) => {
     await loadFixture(page);
     const viewer = page.getByTestId('viewer');
     await viewer.evaluate((el: Live2DViewer) => {
@@ -121,7 +121,7 @@ test.describe('Viewport interactions', () => {
     });
     // This is done because there's the small screen and large screen action.
     // Ideally, we would test these seperately... but this works for now.
-    const btn = viewer.getByTestId('fullscreen-action').last();
+    const btn = test.info().project.name.includes('Mobile') ? viewer.getByTestId('fullscreen-action').first() : viewer.getByTestId('fullscreen-action').last();
     await btn.click();
     await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.isFullscreen)).toBe(true);
     await btn.click();
