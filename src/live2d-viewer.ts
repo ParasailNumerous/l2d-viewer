@@ -1,7 +1,7 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import * as PIXI from "pixi.js";
-import JSZip from "jszip";
+import { unzipSync } from "fflate";
 import { Live2DModel, MotionPriority } from "pixi-live2d-display/cubism4";
 
 import preflight from './preflight.css?inline';
@@ -1241,31 +1241,29 @@ export class Live2DViewer extends LitElement {
     if (!file.name.toLowerCase().endsWith(".zip")) return;
     this.statusMsg = `Extracting ZIP: ${file.name}...`;
     try {
-      /* JSZip imported */
-      const zip = await JSZip.loadAsync(file);
-      const modelKey = Object.keys(zip.files).find(
-        (k) =>
-          !zip.files[k].dir &&
-          (k.endsWith(".model3.json") || k.endsWith(".model.json"))
-      );
+      const archiveBuffer = await file.arrayBuffer()
+      const data = new Uint8Array(archiveBuffer);
+      const zip = unzipSync(data);
+
+      // { 'nested/directory/structure.txt': Uint8Array(2) [97, 97] }
+      const modelKey = Object.keys(zip).find((k) => k.endsWith(".model3.json") || k.endsWith(".model.json"))
       if (!modelKey)
         throw new Error("No .model3.json or .model.json found in ZIP!");
 
       const lastSlashIndex = modelKey.lastIndexOf("/");
-      const baseDir =
-        lastSlashIndex >= 0
-          ? modelKey.substring(0, lastSlashIndex + 1)
-          : "";
+      const baseDir = lastSlashIndex >= 0 ? modelKey.substring(0, lastSlashIndex + 1) : "";
       const normalizedFiles: File[] = [];
 
-      for (const [path, entry] of Object.entries<any>(zip.files)) {
-        if (entry.dir || (baseDir && !path.startsWith(baseDir))) continue;
-        const relPath = baseDir ? path.substring(baseDir.length) : path;
-        const fileObj = new File([await entry.async("blob")], relPath);
+      for (const [path, entry] of Object.entries(zip)) {
+        if (!path.startsWith(baseDir)) continue;
+        if (entry.length === 0) continue;
+        const relativePath = path.substring(baseDir.length);
+        const fileObj = new File([entry], relativePath);
+        // stub for other code
         Object.defineProperty(fileObj, "webkitRelativePath", {
-          value: relPath,
-          writable: false,
-        });
+          value: relativePath,
+          writable: false
+        })
         normalizedFiles.push(fileObj);
       }
 
@@ -1601,9 +1599,9 @@ export class Live2DViewer extends LitElement {
               id="exportResolutionSelect"
               .value=${this.exportResolution}
               @change=${(e: Event) => {
-      this.exportResolution = (e.target as HTMLSelectElement).value;
-      this.fitModel();
-    }}
+        this.exportResolution = (e.target as HTMLSelectElement).value;
+        this.fitModel();
+      }}
             >
               <option value="viewport">Viewport</option>
               <option value="720p">720p</option>
@@ -1626,10 +1624,10 @@ export class Live2DViewer extends LitElement {
                           min="100"
                           .value=${this.customWidth.toString()}
                           @input=${(e: Event) => {
-              this.customWidth =
-                Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
-              this.fitModel();
-            }}
+            this.customWidth =
+              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
+            this.fitModel();
+          }}
                         />
                       </label>
                     </div>
@@ -1644,10 +1642,10 @@ export class Live2DViewer extends LitElement {
                           min="100"
                           .value=${this.customHeight.toString()}
                           @input=${(e: Event) => {
-              this.customHeight =
-                Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
-              this.fitModel();
-            }}
+            this.customHeight =
+              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
+            this.fitModel();
+          }}
                         />
                       </label>
                     </div>
