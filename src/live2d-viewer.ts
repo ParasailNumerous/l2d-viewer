@@ -46,7 +46,7 @@ export class Live2DViewer extends LitElement {
   @property({ type: String }) selectedMotion: string = "";
   @property({ type: Array }) expressions: ExpressionItem[] = [];
   @property({ type: String }) selectedExpression: string = "";
-  @property({ type: Number, reflect: true }) scale: number = 0.9;
+  @property({ type: Number }) scale: number = 0.9;
   @property({ type: String }) resolution: "device" | string = "device";
   @property({ type: String }) exportResolution: string = "viewport";
   @property({ type: Number }) customWidth: number = 1920;
@@ -58,8 +58,8 @@ export class Live2DViewer extends LitElement {
   @property({ type: Boolean }) isDragging: boolean = false;
   @property({ type: Boolean }) isRecording: boolean = false;
   @property({ type: Boolean, reflect: true }) isFullscreen: boolean = false;
-  @property({ type: Number, reflect: true }) panX: number = 0;
-  @property({ type: Number, reflect: true }) panY: number = 0;
+  @property({ type: Number }) panX: number = 0;
+  @property({ type: Number }) panY: number = 0;
 
   private app: PIXI.Application | null = null;
   private currentModel: InstanceType<typeof Live2DModel> | null = null;
