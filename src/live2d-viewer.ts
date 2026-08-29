@@ -8,6 +8,13 @@ import preflight from './preflight.css?inline';
 
 Live2DModel.registerTicker(PIXI.Ticker);
 
+// Force Cubism renderer.CONTEXT_UID to force rebind for CubismShader_WebGL every frame
+const origRender = Live2DModel.prototype._render;
+Live2DModel.prototype._render = function (renderer: PIXI.Renderer) {
+  this.glContextID = -1;
+  return origRender.call(this, renderer);
+};
+
 interface MotionItem {
   label: string;
   value: string;
