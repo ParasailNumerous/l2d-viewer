@@ -37,7 +37,7 @@
     "fflate": "^0.8.3",
     "lit": "^3.3.3",
     "pixi-live2d-display": "^0.4.0",
-    "pixi.js": "6.5.2"
+    "pixi.js": "8.20.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
