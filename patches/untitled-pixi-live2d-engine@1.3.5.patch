@@ -1,0 +1,78 @@
+diff --git a/dist/cubism-legacy.es.js b/dist/cubism-legacy.es.js
+index 9babe56c4eb23aa4840fd32c6e037e869faa07fc..27f604bfc77d7b6b43917a3cb216be461b2f5618 100644
+--- a/dist/cubism-legacy.es.js
++++ b/dist/cubism-legacy.es.js
+@@ -2115,6 +2115,8 @@ function createTexture(url, options = {}) {
+   }
+   return Assets.load({
+     src: url,
++    format: 'png',
++    loadParser: 'loadTextures',
+     data: {
+       autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
+     }
+diff --git a/dist/cubism-legacy.js b/dist/cubism-legacy.js
+index fa64972a06cd6f7b787ba7d827bbea23476e8653..72e4301bf174b00f3395cfa6e90838724a7b2153 100644
+--- a/dist/cubism-legacy.js
++++ b/dist/cubism-legacy.js
+@@ -2118,6 +2118,8 @@ var __async = (__this, __arguments, generator) => {
+     }
+     return pixi_js.Assets.load({
+       src: url,
++      format: 'png',
++      loadParser: 'loadTextures',
+       data: {
+         autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
+       }
+diff --git a/dist/cubism.es.js b/dist/cubism.es.js
+index 59f0ad2da1457e9dc461140b0ed36b68a4d20aa4..6c9089e988e003c5270f988b5e3a8c821ee65fe8 100644
+--- a/dist/cubism.es.js
++++ b/dist/cubism.es.js
+@@ -4861,6 +4861,8 @@ function createTexture(url, options = {}) {
+   }
+   return Assets.load({
+     src: url,
++    format: 'png',
++    loadParser: 'loadTextures',
+     data: {
+       autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
+     }
+diff --git a/dist/cubism.js b/dist/cubism.js
+index f67db9bd1230f23cf84b5e2885720f32e2217d3f..8f69766f61437f66c12c4bec68e74ce51e6726e0 100644
+--- a/dist/cubism.js
++++ b/dist/cubism.js
+@@ -4864,6 +4864,8 @@ var __async = (__this, __arguments, generator) => {
+     }
+     return pixi_js.Assets.load({
+       src: url,
++      format: 'png',
++      loadParser: 'loadTextures',
+       data: {
+         autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
+       }
+diff --git a/dist/index.es.js b/dist/index.es.js
+index 710e75cc423be5f6d5c3fbea4b90e19a7ed0b662..bf4c901537b102ff648ab880d3828b76927e2631 100644
+--- a/dist/index.es.js
++++ b/dist/index.es.js
+@@ -2207,6 +2207,8 @@ function createTexture(url, options = {}) {
+   }
+   return Assets.load({
+     src: url,
++    format: 'png',
++    loadParser: 'loadTextures',
+     data: {
+       autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
+     }
+diff --git a/dist/index.js b/dist/index.js
+index 3c76d3141f85c3fe3ec138b547a3b064fbd20cfb..02da2b3b8b88009a8eb9098fe38203dca0f40991 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -2210,6 +2210,8 @@ var __async = (__this, __arguments, generator) => {
+     }
+     return pixi_js.Assets.load({
+       src: url,
++      format: 'png',
++      loadParser: 'loadTextures',
+       data: {
+         autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
+       }
