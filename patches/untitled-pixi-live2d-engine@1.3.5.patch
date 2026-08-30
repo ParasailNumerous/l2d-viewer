@@ -7,7 +7,7 @@ index 9babe56c4eb23aa4840fd32c6e037e869faa07fc..27f604bfc77d7b6b43917a3cb216be46
    return Assets.load({
      src: url,
 +    format: 'png',
-+    loadParser: 'loadTextures',
++    parser: 'loadTextures',
      data: {
        autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
      }
@@ -20,7 +20,7 @@ index fa64972a06cd6f7b787ba7d827bbea23476e8653..72e4301bf174b00f3395cfa6e9083872
      return pixi_js.Assets.load({
        src: url,
 +      format: 'png',
-+      loadParser: 'loadTextures',
++      parser: 'loadTextures',
        data: {
          autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
        }
@@ -33,7 +33,7 @@ index 59f0ad2da1457e9dc461140b0ed36b68a4d20aa4..6c9089e988e003c5270f988b5e3a8c82
    return Assets.load({
      src: url,
 +    format: 'png',
-+    loadParser: 'loadTextures',
++    parser: 'loadTextures',
      data: {
        autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
      }
@@ -46,7 +46,7 @@ index f67db9bd1230f23cf84b5e2885720f32e2217d3f..8f69766f61437f66c12c4bec68e74ce5
      return pixi_js.Assets.load({
        src: url,
 +      format: 'png',
-+      loadParser: 'loadTextures',
++      parser: 'loadTextures',
        data: {
          autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
        }
@@ -59,7 +59,7 @@ index 710e75cc423be5f6d5c3fbea4b90e19a7ed0b662..bf4c901537b102ff648ab880d3828b76
    return Assets.load({
      src: url,
 +    format: 'png',
-+    loadParser: 'loadTextures',
++    parser: 'loadTextures',
      data: {
        autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
      }
@@ -72,7 +72,7 @@ index 3c76d3141f85c3fe3ec138b547a3b064fbd20cfb..02da2b3b8b88009a8eb9098fe38203dc
      return pixi_js.Assets.load({
        src: url,
 +      format: 'png',
-+      loadParser: 'loadTextures',
++      parser: 'loadTextures',
        data: {
          autoGenerateMipmaps: getTextureLODMode(options.lod) === "full"
        }
