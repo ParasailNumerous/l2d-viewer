@@ -1,19 +1,12 @@
 import { LitElement, html, css, unsafeCSS } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import * as PIXI from "pixi.js";
+import { Application, Graphics, extensions } from "pixi.js";
 import { unzipSync } from "fflate";
-import { Live2DModel, MotionPriority } from "pixi-live2d-display/cubism4";
+import { Live2DModel, Live2DPlugin, MotionPriority } from "untitled-pixi-live2d-engine/cubism";
 
 import preflight from './preflight.css?inline';
 
-Live2DModel.registerTicker(PIXI.Ticker);
-
-// Force Cubism renderer.CONTEXT_UID to force rebind for CubismShader_WebGL every frame
-const origRender = Live2DModel.prototype._render;
-Live2DModel.prototype._render = function (renderer: PIXI.Renderer) {
-  this.glContextID = -1;
-  return origRender.call(this, renderer);
-};
+extensions.add(Live2DPlugin);
 
 interface MotionItem {
   label: string;
@@ -68,11 +61,11 @@ export class Live2DViewer extends LitElement {
   @property({ type: Number }) panX: number = 0;
   @property({ type: Number }) panY: number = 0;
 
-  private app: PIXI.Application | null = null;
+  private app: Application | null = null;
   private currentModel: InstanceType<typeof Live2DModel> | null = null;
   private currentModelJson: Record<string, unknown> & { FileReferences?: { Motions?: Record<string, { File?: string }[]>; Expressions?: { Name?: string; File?: string }[] } } | null = null;
   private lastModelSource: string | File[] | null = null;
-  private overlayGraphics: PIXI.Graphics | null = null;
+  private overlayGraphics: Graphics | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private rootResizeObserver: ResizeObserver | null = null;
   private recordedChunks: Blob[] = [];
@@ -578,24 +571,24 @@ export class Live2DViewer extends LitElement {
       this.rootResizeObserver.disconnect();
       this.rootResizeObserver = null;
     }
-    if (this.currentModel) {
-      try {
-        this.app?.stage.removeChild(this.currentModel);
-      } catch { }
-      try {
-        this.currentModel.destroy({ children: true });
-      } catch { }
-      this.currentModel = null;
-    }
-    if (this.overlayGraphics) {
-      try {
-        this.overlayGraphics.destroy();
-      } catch { }
-      this.overlayGraphics = null;
-    }
+    // if (this.currentModel) {
+    //   try {
+    //     this.app?.stage.removeChild(this.currentModel);
+    //   } catch { }
+    //   try {
+    //     this.currentModel.destroy({ children: true });
+    //   } catch { }
+    //   this.currentModel = null;
+    // }
+    // if (this.overlayGraphics) {
+    //   try {
+    //     this.overlayGraphics.destroy();
+    //   } catch { }
+    //   this.overlayGraphics = null;
+    // }
     if (this.app) {
       try {
-        this.app.destroy(true, { children: true, texture: true, baseTexture: true });
+        this.app.destroy(true);
       } catch { }
       this.app = null;
     }
@@ -605,21 +598,22 @@ export class Live2DViewer extends LitElement {
     this.isPanning = false;
   }
 
-  private initPixi(): void {
+  private async initPixi(): Promise<void> {
     if (this.app) return;
     const container = this.shadowRoot?.querySelector("#viewport");
     if (!container) return;
 
-    this.app = new PIXI.Application({
+    this.app = new Application();
+    await this.app.init({
       resizeTo: this,
       resolution: this.getResolutionValue(),
       autoDensity: true,
       antialias: true,
       backgroundAlpha: 0,
       preserveDrawingBuffer: true,
-    });
+    })
 
-    container.appendChild(this.app!.view);
+    container.appendChild(this.app.canvas);
 
     this.rootResizeObserver = new ResizeObserver(() => {
       this.resizeRenderer();
@@ -953,13 +947,13 @@ export class Live2DViewer extends LitElement {
   private updateFramingOverlay(): void {
     if (!this.app) return;
     if (!this.overlayGraphics) {
-      this.overlayGraphics = new PIXI.Graphics();
-      this.app!.stage.addChild(this.overlayGraphics);
+      this.overlayGraphics = new Graphics();
+      this.app.stage.addChild(this.overlayGraphics);
     }
 
-    this.app!.stage.setChildIndex(
+    this.app.stage.setChildIndex(
       this.overlayGraphics,
-      this.app!.stage.children.length - 1
+      this.app.stage.children.length - 1
     );
     this.overlayGraphics!.clear();
 
@@ -1052,22 +1046,22 @@ export class Live2DViewer extends LitElement {
     const target = this.getExportDimensions();
     const origW = this.clientWidth,
       origH = this.clientHeight,
-      origRes = this.app!.renderer.resolution;
+      origRes = this.app.renderer.resolution;
 
     if (this.overlayGraphics) this.overlayGraphics!.visible = false;
 
-    this.app!.renderer.resolution = 1;
-    this.app!.renderer.resize(target.width, target.height);
+    this.app.renderer.resolution = 1;
+    this.app.renderer.resize(target.width, target.height);
     this.renderModelForExport(target.width, target.height);
     this.app.render();
 
     const link = document.createElement("a");
     link.download = `live2d-snapshot-${target.width}x${target.height}-${Date.now()}.png`;
-    link.href = this.app!.view.toDataURL("image/png");
+    link.href = this.app.canvas.toDataURL("image/png");
     link.click();
 
-    this.app!.renderer.resolution = origRes;
-    this.app!.renderer.resize(origW, origH);
+    this.app.renderer.resolution = origRes;
+    this.app.renderer.resize(origW, origH);
     if (this.overlayGraphics) this.overlayGraphics!.visible = true;
     this.fitModel();
 
@@ -1089,8 +1083,8 @@ export class Live2DViewer extends LitElement {
     const target = this.getExportDimensions();
     if (this.overlayGraphics) this.overlayGraphics!.visible = false;
 
-    this.app!.renderer.resolution = 1;
-    this.app!.renderer.resize(target.width, target.height);
+    this.app.renderer.resolution = 1;
+    this.app.renderer.resize(target.width, target.height);
     this.renderModelForExport(target.width, target.height);
 
     this.recordedChunks = [];
@@ -1099,7 +1093,7 @@ export class Live2DViewer extends LitElement {
       : "video/webm";
 
     this.mediaRecorder = new MediaRecorder(
-      this.app!.view.captureStream(60),
+      this.app.canvas.captureStream(60),
       { mimeType }
     );
     this.mediaRecorder.addEventListener("dataavailable", (e: BlobEvent) => {
@@ -1153,7 +1147,8 @@ export class Live2DViewer extends LitElement {
         this.currentModelJson = await res.json();
         this.populateMotionsAndExpressions();
         this.currentModel = await Live2DModel.from(source, {
-          autoInteract: this.mouseTracking,
+          autoHitTest: this.mouseTracking,
+          autoFocus: this.mouseTracking,
         });
       } else if (Array.isArray(source)) {
         const modelFile = source.find(
@@ -1165,12 +1160,13 @@ export class Live2DViewer extends LitElement {
         this.currentModelJson = JSON.parse(await modelFile.text());
         this.populateMotionsAndExpressions();
         this.currentModel = await Live2DModel.from(source, {
-          autoInteract: this.mouseTracking,
+          autoHitTest: this.mouseTracking,
+          autoFocus: this.mouseTracking,
         });
       }
 
       if (!this.app) throw new Error("PIXI app not initialized");
-      this.app!.stage.addChild(this.currentModel!);
+      this.app.stage.addChild(this.currentModel!);
       this.fitModel();
       this.playMotion();
       this.statusMsg = `Loaded model successfully!`;
@@ -1232,8 +1228,8 @@ export class Live2DViewer extends LitElement {
 
   private resizeRenderer(): void {
     if (!this.app || this.isRecording) return;
-    this.app!.renderer.resolution = this.getResolutionValue();
-    this.app!.renderer.resize(this.clientWidth, this.clientHeight);
+    this.app.renderer.resolution = this.getResolutionValue();
+    this.app.renderer.resize(this.clientWidth, this.clientHeight);
     this.fitModel();
   }
 
