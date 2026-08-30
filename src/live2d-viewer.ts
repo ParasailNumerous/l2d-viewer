@@ -571,25 +571,19 @@ export class Live2DViewer extends LitElement {
       this.rootResizeObserver.disconnect();
       this.rootResizeObserver = null;
     }
-    // if (this.currentModel) {
-    //   try {
-    //     this.app?.stage.removeChild(this.currentModel);
-    //   } catch { }
-    //   try {
-    //     this.currentModel.destroy({ children: true });
-    //   } catch { }
-    //   this.currentModel = null;
-    // }
-    // if (this.overlayGraphics) {
-    //   try {
-    //     this.overlayGraphics.destroy();
-    //   } catch { }
-    //   this.overlayGraphics = null;
-    // }
+    if (this.currentModel) {
+      // This fails because modelCount === 0?
+      // Not sure if it leaks, debug later
+      this.app?.stage.removeChild(this.currentModel);
+      this.currentModel.destroy({ children: true });
+      this.currentModel = null;
+    }
+    if (this.overlayGraphics) {
+      this.overlayGraphics.destroy({ children: true });
+      this.overlayGraphics = null;
+    }
     if (this.app) {
-      try {
-        this.app.destroy(true);
-      } catch { }
+      this.app.destroy(true);
       this.app = null;
     }
     this.touchPointers.clear();
