@@ -6,6 +6,15 @@ import { Live2DModel, Live2DPlugin, MotionPriority } from "untitled-pixi-live2d-
 
 import preflight from './preflight.css?inline';
 
+import { configureLocalization, localized } from '@lit/localize';
+import { sourceLocale, targetLocales } from './generated/locale-codes.js';
+
+export const { getLocale, setLocale } = configureLocalization({
+  sourceLocale,
+  targetLocales,
+  loadLocale: (locale) => import(`/locales/${locale}.js`),
+});
+
 extensions.add(Live2DPlugin);
 
 interface MotionItem {
@@ -36,6 +45,7 @@ interface TouchPoint {
 }
 
 @customElement("live2d-viewer")
+@localized()
 export class Live2DViewer extends LitElement {
   @property({ type: String }) selectedModelPath: string = "";
   @property({ type: String }) archivePath?: string;
@@ -526,6 +536,7 @@ export class Live2DViewer extends LitElement {
   }
 
   override firstUpdated(): void {
+    this.syncLanguageWithBrowser();
     this.initPixi();
     this.setupDragAndDrop();
     this.setupPanListeners();
@@ -847,6 +858,13 @@ export class Live2DViewer extends LitElement {
         this.toggleFullscreen();
       }
     }, { signal: this.abortController.signal });
+  }
+
+  private syncLanguageWithBrowser(): void {
+    const activeLang = navigator.languages.find(lang => 
+      (targetLocales as readonly string[]).includes(lang)
+    );
+    if (activeLang) setLocale(activeLang);
   }
 
   private updateView(): void {
