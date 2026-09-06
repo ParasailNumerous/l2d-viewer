@@ -97,12 +97,29 @@ export class Live2DViewer extends LitElement {
   private ignoredPointerIds: Set<number> = new Set();
   private initialPinchDist: number = 0;
   private initialScaleOnPinch: number = 0.9;
-  private initialPinchMid: TouchPoint = { x: 0, y: 0 };
+  private initialScaleRatioOnPinch: number = 1;
   private initialPanOnPinch: TouchPoint = { x: 0, y: 0 };
+  private initialPinchMid: TouchPoint = { x: 0, y: 0 };
 
   private viewportPressedKeys: Set<string> = new Set();
   private viewportKeyAnimationFrame: number | null = null;
   private viewportKeyLastTime: number = 0;
+
+  private get scaleRatio(): number {
+    if (!this.currentModel) return 0
+    const bounds = this.currentModel.getLocalBounds();
+    this.currentModel.pivot.set(
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height / 2
+    );
+
+    const frame = this.getFrameBounds();
+    const scaleRatio =
+      Math.min(frame.width / bounds.width, frame.height / bounds.height) *
+      this.scale;
+    return scaleRatio;
+  }
+
 
   static override shadowRootOptions = {
     ...LitElement.shadowRootOptions,
@@ -672,6 +689,7 @@ export class Live2DViewer extends LitElement {
           pts[0].y - pts[1].y
         );
         this.initialScaleOnPinch = this.scale;
+        this.initialScaleRatioOnPinch = this.scaleRatio;
         this.initialPinchMid = {
           x: (pts[0].x + pts[1].x) / 2,
           y: (pts[0].y + pts[1].y) / 2,
@@ -713,34 +731,34 @@ export class Live2DViewer extends LitElement {
             40,
             Math.max(0.1, Number(rawScale.toFixed(3)))
           );
-          const ratio = newScale / this.initialScaleOnPinch;
+          const ratio = newScale / this .initialScaleOnPinch;
           this.scale = newScale;
 
           const frame = this.getFrameBounds();
           const frameCx = frame.x + frame.width / 2;
           const frameCy = frame.y + frame.height / 2;
-          const initialCx = frameCx + this.initialPanOnPinch.x;
-          const initialCy = frameCy + this.initialPanOnPinch.y;
+          const initialCx = frameCx + this.initialPanOnPinch.x * this.initialScaleRatioOnPinch;
+          const initialCy = frameCy + this.initialPanOnPinch.y * this.initialScaleRatioOnPinch;
 
           // Pan so zoom is anchored at initialPinchMid, plus follow finger drag
           this.panX = Math.round(
-            this.initialPanOnPinch.x +
-            (currentMid.x - this.initialPinchMid.x) +
-            (this.initialPinchMid.x - initialCx) * (1 - ratio)
+            this.initialPanOnPinch.x / ratio +
+            (currentMid.x - this.initialPinchMid.x) / this.scaleRatio +
+            (this.initialPinchMid.x - initialCx) * (1 - ratio) / this.scaleRatio
           );
           this.panY = Math.round(
-            this.initialPanOnPinch.y +
-            (currentMid.y - this.initialPinchMid.y) +
-            (this.initialPinchMid.y - initialCy) * (1 - ratio)
+            this.initialPanOnPinch.y / ratio +
+            (currentMid.y - this.initialPinchMid.y) / this.scaleRatio +
+            (this.initialPinchMid.y - initialCy) * (1 - ratio) / this.scaleRatio
           );
         } else {
           this.panX = Math.round(
             this.initialPanOnPinch.x +
-            (currentMid.x - this.initialPinchMid.x)
+            (currentMid.x - this.initialPinchMid.x) / this.scaleRatio
           );
           this.panY = Math.round(
             this.initialPanOnPinch.y +
-            (currentMid.y - this.initialPinchMid.y)
+            (currentMid.y - this.initialPinchMid.y) / this.scaleRatio
           );
         }
         this.updateView();
@@ -748,8 +766,8 @@ export class Live2DViewer extends LitElement {
       }
 
       if (!this.isPanning) return;
-      this.panX = Math.round(initialPanX + (pe.clientX - startX));
-      this.panY = Math.round(initialPanY + (pe.clientY - startY));
+      this.panX = Math.round(initialPanX + (pe.clientX - startX) / this.scaleRatio);
+      this.panY = Math.round(initialPanY + (pe.clientY - startY) / this.scaleRatio);
       this.updateView();
     }, { signal: this.abortController.signal });
 
@@ -795,6 +813,7 @@ export class Live2DViewer extends LitElement {
         const cursorY = we.clientY - rect.top;
         const frame = this.getFrameBounds();
         const oldScale = this.scale;
+        const oldScaleRatio = this.scaleRatio;
 
         let deltaY = we.deltaY;
         if (we.deltaMode === 1) deltaY *= 16;
@@ -807,11 +826,17 @@ export class Live2DViewer extends LitElement {
         if (newScale === oldScale) return;
 
         const ratio = newScale / oldScale;
-        const cx = frame.x + frame.width / 2 + this.panX;
-        const cy = frame.y + frame.height / 2 + this.panY;
-        this.panX = Math.round(this.panX + (cursorX - cx) * (1 - ratio));
-        this.panY = Math.round(this.panY + (cursorY - cy) * (1 - ratio));
+        const cx = frame.x + frame.width / 2 + this.panX * oldScaleRatio;
+        const cy = frame.y + frame.height / 2 + this.panY * oldScaleRatio;
         this.scale = newScale;
+        this.panX = Math.round(
+          this.panX / ratio + (cursorX - cx) * (1 - ratio)
+          / this.scaleRatio
+        );
+        this.panY = Math.round(
+          this.panY / ratio + (cursorY - cy) * (1 - ratio)
+          / this.scaleRatio
+        );
         this.updateView();
       },
       { passive: false, signal: this.abortController.signal }
@@ -1025,14 +1050,12 @@ export class Live2DViewer extends LitElement {
     );
 
     const frame = this.getFrameBounds();
-    const scaleRatio =
-      Math.min(frame.width / bounds.width, frame.height / bounds.height) *
-      this.scale;
+    const scaleRatio = this.scaleRatio;
 
     this.currentModel.scale.set(scaleRatio);
     this.currentModel.position.set(
-      frame.x + frame.width / 2 + this.panX,
-      frame.y + frame.height / 2 + this.panY
+      frame.x + frame.width / 2 + this.panX * scaleRatio,
+      frame.y + frame.height / 2 + this.panY * scaleRatio
     );
     this.updateFramingOverlay();
   }
@@ -1481,7 +1504,7 @@ export class Live2DViewer extends LitElement {
 
     // Scale by deltaTime: base speed is per 60fps frame (16.6ms)
     const timeScale = dt / (1000 / 60);
-    const panSpeed = 10 * timeScale;
+    const panSpeed = Math.max(10 * timeScale / this.scaleRatio, 1);
     const zoomSpeed = 0.05 * timeScale;
     const oldScale = this.scale;
     let newScale = oldScale * Math.exp(-deltaZ * zoomSpeed);
