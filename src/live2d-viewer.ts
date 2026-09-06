@@ -298,6 +298,7 @@ export class Live2DViewer extends LitElement {
 
     #viewport {
       cursor: grab;
+      touch-action: none;
       &:active {
         cursor: grabbing;
       }
