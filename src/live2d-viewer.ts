@@ -6,13 +6,13 @@ import { Live2DModel, Live2DPlugin, MotionPriority } from "untitled-pixi-live2d-
 
 import preflight from './preflight.css?inline';
 
-import { configureLocalization, localized } from '@lit/localize';
+import { configureLocalization, localized, msg } from '@lit/localize';
 import { sourceLocale, targetLocales } from './generated/locale-codes.js';
 
 export const { getLocale, setLocale } = configureLocalization({
   sourceLocale,
   targetLocales,
-  loadLocale: (locale) => import(`./generated/locales/${locale}.js`),
+  loadLocale: (locale) => import(`./generated/locales/${locale}.ts`),
 });
 
 extensions.add(Live2DPlugin);
@@ -43,6 +43,17 @@ interface TouchPoint {
   x: number;
   y: number;
 }
+
+async function syncLocale() {
+  const activeLang = navigator.languages.find(lang =>
+    (targetLocales as readonly string[]).includes(lang)
+  );
+  if (activeLang) await setLocale(activeLang);
+}
+
+window.addEventListener("languagechange", () => {
+  syncLocale();
+})
 
 @customElement("live2d-viewer")
 @localized()
@@ -536,7 +547,7 @@ export class Live2DViewer extends LitElement {
   }
 
   override firstUpdated(): void {
-    this.syncLanguageWithBrowser();
+    syncLocale();
     this.initPixi();
     this.setupDragAndDrop();
     this.setupPanListeners();
@@ -858,13 +869,6 @@ export class Live2DViewer extends LitElement {
         this.toggleFullscreen();
       }
     }, { signal: this.abortController.signal });
-  }
-
-  private syncLanguageWithBrowser(): void {
-    const activeLang = navigator.languages.find(lang => 
-      (targetLocales as readonly string[]).includes(lang)
-    );
-    if (activeLang) setLocale(activeLang);
   }
 
   private updateView(): void {
@@ -1511,7 +1515,7 @@ export class Live2DViewer extends LitElement {
                 `;
         })
         : html`
-                <div class="empty-state">None available</div>
+                <div class="empty-state">${msg('None available', { desc: 'Tile grid empty state' })}</div>
               `
       }
       </div>
@@ -1524,7 +1528,7 @@ export class Live2DViewer extends LitElement {
 
       ${this.isDragging
         ? html`
-              <div class="drop-overlay"><span>Drop ZIP file</span></div>
+              <div class="drop-overlay"><span>${msg('Drop ZIP file', { desc: 'Text overlaid when file is being dragged over viewport' })}</span></div>
             `
         : ""
       }
@@ -1539,19 +1543,19 @@ export class Live2DViewer extends LitElement {
             @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
           >
-            Import <kbd>I</kbd>
+            ${msg('Import')} <kbd>I</kbd>
           </button>
         </div>
         <div class="small-screen-actions">
-          <button data-testid="fullscreen-action" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
+          <button data-testid="fullscreen-action" aria-label=${msg('Toggle fullscreen', { desc: 'Icon button label' })} title=${msg('Toggle fullscreen', { desc: 'Icon button label' })} @click=${this.toggleFullscreen}>
             ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
             <kbd>F</kbd>
           </button>
           <button data-testid="screenshot-action" @click=${this.captureScreenshot}>
-            Screenshot <kbd>E</kbd>
+            ${msg('Screenshot')} <kbd>E</kbd>
           </button>
           <button data-testid="record-action" @click=${this.toggleRecording}>
-            ${this.isRecording ? "Stop" : "Record"} <kbd>R</kbd>
+            ${this.isRecording ? msg('Stop', { desc: 'Small screen: stop recording action' }) : msg('Record', { desc: 'Small screen: start recording action' })} <kbd>R</kbd>
           </button>
         </div>
       </div>
@@ -1559,7 +1563,7 @@ export class Live2DViewer extends LitElement {
       <aside data-testid="controls">
         <section class="panel">
           <div class="stack" data-testid="motion-group-collection">
-            <span class="section-label">Motion Group</span>
+            <span class="section-label">${msg('Motion Group', { desc: 'Live2D Cubism name, leave as is or use its vocabulary' })}</span>
             ${this.renderTileGrid(
           this.motionGroups,
           this.selectedGroup,
@@ -1571,7 +1575,7 @@ export class Live2DViewer extends LitElement {
         )}
           </div>
           <div class="stack" data-testid="motion-collection">
-            <span class="section-label">Motion</span>
+            <span class="section-label">${msg('Motion', { desc: 'Live2D Cubism name, leave as is or use its vocabulary' })}</span>
             ${this.renderTileGrid(
           this.motions,
           this.selectedMotion,
@@ -1584,7 +1588,7 @@ export class Live2DViewer extends LitElement {
         )}
           </div>
           <div class="stack" data-testid="expression-collection">
-            <span class="section-label">Expression</span>
+            <span class="section-label">${msg('Expression', { desc: 'Live2D Cubism name, leave as is or use its vocabulary' })}</span>
             ${this.renderTileGrid(
           this.expressions,
           this.selectedExpression,
@@ -1608,20 +1612,20 @@ export class Live2DViewer extends LitElement {
               @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
             >
-              Import
+              ${msg('Import')}
               <kbd>I</kbd>
             </button>
             <button data-testid="screenshot-action" @click=${this.captureScreenshot}>
-              Screenshot
+              ${msg('Screenshot')}
               <kbd>E</kbd>
             </button>
             <button data-testid="record-action" @click=${this.toggleRecording}>
-              ${this.isRecording ? "Stop recording" : "Start recording"}
+              ${this.isRecording ? msg('Stop recording') : msg('Start recording')}
               <kbd>R</kbd>
             </button>
           </div>
           <div class="cluster cluster--spread grid-span">
-            <label for="exportResolutionSelect">Export resolution</label>
+            <label for="exportResolutionSelect">${msg('Export resolution')}</label>
             <select
               id="exportResolutionSelect"
               .value=${this.exportResolution}
@@ -1630,11 +1634,11 @@ export class Live2DViewer extends LitElement {
         this.fitModel();
       }}
             >
-              <option value="viewport">Viewport</option>
+              <option value="viewport">${msg('Viewport', { desc: 'Export resolution dropdown option' })}</option>
               <option value="720p">720p</option>
               <option value="1080p">1080p</option>
               <option value="4k">4K</option>
-              <option value="custom">Custom</option>
+              <option value="custom">${msg('Custom', { desc: 'Export resolution dropdown option' })}</option>
             </select>
           </div>
           ${this.exportResolution === "custom"
@@ -1645,8 +1649,8 @@ export class Live2DViewer extends LitElement {
                         <span class="field field--start" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-move-horizontal-icon lucide-move-horizontal"><path d="m18 8 4 4-4 4"/><path d="M2 12h20"/><path d="m6 8-4 4 4 4"/></svg></span>
                         <input
                           id="customW"
-                          aria-label="Custom export width"
-                          title="Custom export width"
+                          aria-label=${msg('Custom export width', { desc: 'Input field label' })}
+                          title=${msg('Custom export width', { desc: 'Input field label' })}
                           type="number"
                           min="100"
                           .value=${this.customWidth.toString()}
@@ -1663,8 +1667,8 @@ export class Live2DViewer extends LitElement {
                         <span class="field field--start" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-move-vertical-icon lucide-move-vertical"><path d="M12 2v20"/><path d="m8 18 4 4 4-4"/><path d="m8 6 4-4 4 4"/></svg></span>
                         <input
                           id="customH"
-                          aria-label="Custom export height"
-                          title="Custom export height"
+                          aria-label=${msg('Custom export height', { desc: 'Input field label' })}
+                          title=${msg('Custom export height', { desc: 'Input field label' })}
                           type="number"
                           min="100"
                           .value=${this.customHeight.toString()}
@@ -1682,10 +1686,10 @@ export class Live2DViewer extends LitElement {
       }
           <div class="stack">
             <span class="section-label section-label--spread">
-              Camera
+              ${msg('Camera')}
               <div class="spacer"></div>
-              <span class="keyboard-only">Pan <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
-              <span class="keyboard-only">Zoom <kbd>-</kbd> / <kbd>=</kbd></span>
+              <span class="keyboard-only">${msg("Pan", { desc: 'Label for keybinds; keep under 8 characters' })}<kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
+              <span class="keyboard-only">${msg("Zoom", { desc: 'Label for keybinds; keep under 8 characters' })}<kbd>-</kbd> / <kbd>=</kbd></span>
             </span>
             <div class="cluster">
               <div class="field">
@@ -1693,8 +1697,8 @@ export class Live2DViewer extends LitElement {
                   <span class="field field--start" aria-hidden="true">X</span>
                   <input
                     id="panXInput"
-                    aria-label="Pan X"
-                    title="Pan X"
+                    aria-label=${msg('Pan X', { desc: 'Input field label' })}
+                    title=${msg('Pan X', { desc: 'Input field label' })}
                     type="number"
                     .value=${this.panX.toString()}
                     @input=${(e: Event) => {
@@ -1709,8 +1713,8 @@ export class Live2DViewer extends LitElement {
                   <span class="field field--start" aria-hidden="true">Y</span>
                   <input
                     id="panYInput"
-                    aria-label="Pan Y"
-                    title="Pan Y"
+                    aria-label=${msg('Pan Y', { desc: 'Input field label' })}
+                    title=${msg('Pan Y', { desc: 'Input field label' })}
                     type="number"
                     .value=${this.panY.toString()}
                     @input=${(e: Event) => {
@@ -1725,8 +1729,8 @@ export class Live2DViewer extends LitElement {
                   <span class="field field--start" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scaling-icon lucide-scaling"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M14 15H9v-5"/><path d="M16 3h5v5"/><path d="M21 3 9 15"/></svg></span>
                   <input
                     id="scaleInput"
-                    aria-label="Scale"
-                    title="Scale"
+                    aria-label=${msg('Scale', { desc: 'Input field label' })}
+                    title=${msg('Scale', { desc: 'Input field label' })}
                     type="number"
                     min="0.1"
                     step="0.05"
@@ -1739,16 +1743,16 @@ export class Live2DViewer extends LitElement {
                 </label>
               </div>
               <button data-testid="reset-action" @click=${this.resetView}>
-                Reset
+                ${msg('Reset')}
               </button>
             </div>
           </div>
         </section>
 
         <details class="panel">
-          <summary>Advanced</summary>
+          <summary>${msg('Advanced')}</summary>
           <div class="cluster cluster--spread">
-            <label for="displayResolutionSelect">Resolution scale</label>
+            <label for="displayResolutionSelect">${msg('Resolution scale')}</label>
             <select
               id="displayResolutionSelect"
               .value=${this.resolution}
@@ -1757,17 +1761,17 @@ export class Live2DViewer extends LitElement {
         this.resizeRenderer();
       }}
             >
-              <option value="device">Device</option>
-              <option value="1">1x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-              <option value="2.5">2.5x</option>
-              <option value="3">3x</option>
+              <option value="device">${msg('Device', { desc: 'Dropdown option for display resolution scale' })}</option>
+              <option value="1">${msg('1x', { desc: 'Dropdown option for display resolution scale' })}</option>
+              <option value="1.5">${msg('1.5x', { desc: 'Dropdown option for display resolution scale' })}</option>
+              <option value="2">${msg('2x', { desc: 'Dropdown option for display resolution scale' })}</option>
+              <option value="2.5">${msg('2.5x', { desc: 'Dropdown option for display resolution scale' })}</option>
+              <option value="3">${msg('3x', { desc: 'Dropdown option for display resolution scale' })}</option>
             </select>
           </div>
           <div class="stack">
             <div class="cluster cluster--spread">
-              <label for="showPreview">Framing guide</label>
+              <label for="showPreview">${msg('Framing guide')}</label>
               <input
                 id="showPreview"
                 class="checkbox-custom"
@@ -1780,7 +1784,7 @@ export class Live2DViewer extends LitElement {
               />
             </div>
             <div class="cluster cluster--spread">
-              <label for="mouseTrack">Mouse tracking</label>
+              <label for="mouseTrack">${msg('Mouse tracking')}</label>
               <input
                 id="mouseTrack"
                 class="checkbox-custom"
@@ -1822,7 +1826,7 @@ export class Live2DViewer extends LitElement {
 
       <span id="status" role="status" data-testid="status">${this.statusMsg}</span>
 
-      <button data-testid="fullscreen-action" class="fullscreen-action small-screen-hidden" aria-label="Toggle fullscreen" title="Toggle fullscreen" @click=${this.toggleFullscreen}>
+      <button data-testid="fullscreen-action" class="fullscreen-action small-screen-hidden" aria-label=${msg('Toggle fullscreen', { desc: 'Icon button label' })} title=${msg('Toggle fullscreen', { desc: 'Icon button label' })} @click=${this.toggleFullscreen}>
         ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
         <kbd>F</kbd>
       </button>
