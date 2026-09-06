@@ -731,7 +731,7 @@ export class Live2DViewer extends LitElement {
             40,
             Math.max(0.1, Number(rawScale.toFixed(3)))
           );
-          const ratio = newScale / this .initialScaleOnPinch;
+          const ratio = newScale / this.initialScaleOnPinch;
           this.scale = newScale;
 
           const frame = this.getFrameBounds();
@@ -1011,33 +1011,35 @@ export class Live2DViewer extends LitElement {
       vw = this.clientWidth,
       vh = this.isSmallScreen() ? this.getVisibleViewportHeight() : this.clientHeight;
 
-    this.overlayGraphics!.beginFill(0x000000, 0.55);
-    if (frame.y > 0) this.overlayGraphics!.drawRect(0, 0, vw, frame.y);
+    this.overlayGraphics!.fill("rgb(0 0 0 / 0.55)");
+    if (frame.y > 0) this.overlayGraphics!.rect(0, 0, vw, frame.y);
     if (frame.y + frame.height < vh)
-      this.overlayGraphics!.drawRect(
+      this.overlayGraphics!.rect(
         0,
         frame.y + frame.height,
         vw,
         vh - (frame.y + frame.height)
       );
     if (frame.x > 0)
-      this.overlayGraphics!.drawRect(0, frame.y, frame.x, frame.height);
+      this.overlayGraphics!.rect(0, frame.y, frame.x, frame.height);
     if (frame.x + frame.width < vw)
-      this.overlayGraphics!.drawRect(
+      this.overlayGraphics!.rect(
         frame.x + frame.width,
         frame.y,
         vw - (frame.x + frame.width),
         frame.height
       );
-    this.overlayGraphics!.endFill();
+    this.overlayGraphics!.fill();
 
-    this.overlayGraphics!.lineStyle(2, 0x10cfcc, 0.9);
-    this.overlayGraphics!.drawRect(
+    this.overlayGraphics!.rect(
       frame.x,
       frame.y,
       frame.width,
       frame.height
-    );
+    ).stroke({
+      width: 2,
+      color: 0x10cfcc,
+    });
   }
 
   private fitModel(): void {
