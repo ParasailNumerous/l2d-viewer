@@ -116,6 +116,7 @@ export class Live2DViewer extends LitElement {
       width: 100%;
       height: 100%;
       user-select: none;
+      touch-action: manipulation;
       contain: content;
       container-type: inline-size;
 
