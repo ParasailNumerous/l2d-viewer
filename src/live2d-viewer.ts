@@ -1073,9 +1073,19 @@ export class Live2DViewer extends LitElement {
     this.renderModelForExport(target.width, target.height);
     this.app.render();
 
+    const canvasBlob: Blob = await new Promise((resolve, reject) => {
+      this.app!.canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject();
+        }
+      }, "image/png");
+    })
+
     const link = document.createElement("a");
     link.download = `live2d-snapshot-${target.width}x${target.height}-${Date.now()}.png`;
-    link.href = this.app.canvas.toDataURL("image/png");
+    link.href = URL.createObjectURL(canvasBlob);
     link.click();
 
     this.app.renderer.resolution = origRes;
