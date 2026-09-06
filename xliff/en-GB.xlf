@@ -1,6 +1,132 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
 <file target-language="en-GB" source-language="en" original="lit-localize-inputs" datatype="plaintext">
-<body/>
+<body>
+<trans-unit id="s3914cb410fca44d4">
+  <source>Import</source>
+</trans-unit>
+<trans-unit id="s12e9c9d9d9b94cf1">
+  <source>Screenshot</source>
+</trans-unit>
+<trans-unit id="sb32cad250448883a">
+  <source>Stop recording</source>
+</trans-unit>
+<trans-unit id="sa9da29c2219e79d4">
+  <source>Start recording</source>
+</trans-unit>
+<trans-unit id="s0fae70085395a77b">
+  <source>Export resolution</source>
+</trans-unit>
+<trans-unit id="s54d1b2a64667e32e">
+  <source>Camera</source>
+</trans-unit>
+<trans-unit id="s255857544a9d5ec0">
+  <source>Reset</source>
+</trans-unit>
+<trans-unit id="s21b06c38fc4164db">
+  <source>Advanced</source>
+</trans-unit>
+<trans-unit id="scc8c6c80277c1d89">
+  <source>Resolution scale</source>
+</trans-unit>
+<trans-unit id="see3ba305d75e09c9">
+  <source>Framing guide</source>
+</trans-unit>
+<trans-unit id="sdaa6b536b76a65f5">
+  <source>Mouse tracking</source>
+</trans-unit>
+<trans-unit id="s0b0a02a4470de153">
+  <source>Device</source>
+  <note from="lit-localize">Dropdown option for display resolution scale</note>
+</trans-unit>
+<trans-unit id="s07f84a07b4b98e4c">
+  <source>1x</source>
+  <note from="lit-localize">Dropdown option for display resolution scale</note>
+</trans-unit>
+<trans-unit id="s41de11f116525cf3">
+  <source>1.5x</source>
+  <note from="lit-localize">Dropdown option for display resolution scale</note>
+</trans-unit>
+<trans-unit id="s08034c07b4c39937">
+  <source>2x</source>
+  <note from="lit-localize">Dropdown option for display resolution scale</note>
+</trans-unit>
+<trans-unit id="sd745ea0ba1e14cec">
+  <source>2.5x</source>
+  <note from="lit-localize">Dropdown option for display resolution scale</note>
+</trans-unit>
+<trans-unit id="s07ff4607b4bfa62e">
+  <source>3x</source>
+  <note from="lit-localize">Dropdown option for display resolution scale</note>
+</trans-unit>
+<trans-unit id="safebfdf2495fa963">
+  <source>Viewport</source>
+  <note from="lit-localize">Export resolution dropdown option</note>
+</trans-unit>
+<trans-unit id="sf0cab2483f66aa2e">
+  <source>Custom</source>
+  <note from="lit-localize">Export resolution dropdown option</note>
+</trans-unit>
+<trans-unit id="sdcf7cff5142442e6">
+  <source>Toggle fullscreen</source>
+  <note from="lit-localize">Icon button label</note>
+</trans-unit>
+<trans-unit id="s81a28b03c630b0b4">
+  <source>Custom export width</source>
+  <note from="lit-localize">Input field label</note>
+</trans-unit>
+<trans-unit id="s259a6b881cae3f83">
+  <source>Custom export height</source>
+  <note from="lit-localize">Input field label</note>
+</trans-unit>
+<trans-unit id="s1db6360db0fbd814">
+  <source>Pan X</source>
+  <note from="lit-localize">Input field label</note>
+</trans-unit>
+<trans-unit id="s1db6370db0fbd9c7">
+  <source>Pan Y</source>
+  <note from="lit-localize">Input field label</note>
+</trans-unit>
+<trans-unit id="s2706a162264c46f1">
+  <source>Scale</source>
+  <note from="lit-localize">Input field label</note>
+</trans-unit>
+<trans-unit id="s8dd37619f42fa90c">
+  <source>Pan</source>
+  <note from="lit-localize">Label for keybinds; keep under 8 characters</note>
+</trans-unit>
+<trans-unit id="s166bd56d19670a72">
+  <source>Zoom</source>
+  <note from="lit-localize">Label for keybinds; keep under 8 characters</note>
+</trans-unit>
+<trans-unit id="s1cfec4d5cba2e56c">
+  <source>Motion Group</source>
+  <note from="lit-localize">Live2D Cubism name, leave as is or use its vocabulary</note>
+</trans-unit>
+<trans-unit id="s191bbfc4126e2367">
+  <source>Motion</source>
+  <note from="lit-localize">Live2D Cubism name, leave as is or use its vocabulary</note>
+</trans-unit>
+<trans-unit id="s6ab73c998850c5ab">
+  <source>Expression</source>
+  <note from="lit-localize">Live2D Cubism name, leave as is or use its vocabulary</note>
+</trans-unit>
+<trans-unit id="s8a4ff2bd9c13498c">
+  <source>Record</source>
+  <note from="lit-localize">Small screen: start recording action</note>
+</trans-unit>
+<trans-unit id="sd9ad53251f2330a5">
+  <source>Stop</source>
+  <note from="lit-localize">Small screen: stop recording action</note>
+</trans-unit>
+<trans-unit id="s5efd695469fdfbc7">
+  <source>Drop ZIP file</source>
+  <note from="lit-localize">Text overlaid when file is being dragged over viewport</note>
+</trans-unit>
+<trans-unit id="s49cbb899f39d446c">
+  <source>None available</source>
+  <note from="lit-localize">Tile grid empty state</note>
+</trans-unit>
+</body>
 </file>
 </xliff>
