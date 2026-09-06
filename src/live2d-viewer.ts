@@ -44,6 +44,17 @@ interface TouchPoint {
   y: number;
 }
 
+async function syncLocale() {
+  const activeLang = navigator.languages.find(lang =>
+    (targetLocales as readonly string[]).includes(lang)
+  );
+  if (activeLang) await setLocale(activeLang);
+}
+
+window.addEventListener("languagechange", () => {
+  syncLocale();
+})
+
 @customElement("live2d-viewer")
 @localized()
 export class Live2DViewer extends LitElement {
@@ -536,7 +547,7 @@ export class Live2DViewer extends LitElement {
   }
 
   override firstUpdated(): void {
-    this.syncLanguageWithBrowser();
+    syncLocale();
     this.initPixi();
     this.setupDragAndDrop();
     this.setupPanListeners();
@@ -858,13 +869,6 @@ export class Live2DViewer extends LitElement {
         this.toggleFullscreen();
       }
     }, { signal: this.abortController.signal });
-  }
-
-  private syncLanguageWithBrowser(): void {
-    const activeLang = navigator.languages.find(lang =>
-      (targetLocales as readonly string[]).includes(lang)
-    );
-    if (activeLang) setLocale(activeLang);
   }
 
   private updateView(): void {
