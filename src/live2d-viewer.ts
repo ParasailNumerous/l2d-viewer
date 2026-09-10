@@ -314,6 +314,11 @@ export class Live2DViewer extends LitElement {
     }
 
     #viewport {
+      max-width: 100%;
+      max-height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: grab;
       touch-action: none;
       &:active {
@@ -1065,7 +1070,7 @@ export class Live2DViewer extends LitElement {
   private renderModelForExport(exportW: number, exportH: number): void {
     if (!this.currentModel) return;
     const frame = this.getFrameBounds();
-    const scaleMultiplier = exportH / frame.height;
+    const scaleMultiplier = exportW / frame.width;
 
     this.currentModel.scale.set(1);
     const bounds = this.currentModel.getLocalBounds();
@@ -1079,23 +1084,46 @@ export class Live2DViewer extends LitElement {
       this.scale;
     this.currentModel.scale.set(baseScaleRatio * scaleMultiplier);
     this.currentModel.position.set(
-      exportW / 2 + this.panX * scaleMultiplier,
-      exportH / 2 + this.panY * scaleMultiplier
+      exportW / 2 + Math.round(this.panX * scaleMultiplier),
+      exportH / 2 + Math.round(this.panY * scaleMultiplier)
     );
+  }
+
+  private applyExportSize(target: ExportDimensions): void {
+    if (!this.app) return;
+    if (this.overlayGraphics) this.overlayGraphics.visible = false;
+    this.app.renderer.resolution = 1;
+    this.app.renderer.resize(target.width, target.height);
+    this.renderModelForExport(target.width, target.height);
+    this.applyCanvasFit(target);
+  }
+
+  private restoreViewportSize(): void {
+    if (!this.app) return;
+    this.app.renderer.resolution = this.getResolutionValue();
+    this.app.renderer.resize(this.clientWidth, this.clientHeight);
+    this.clearCanvasFit();
+    if (this.overlayGraphics) this.overlayGraphics.visible = true;
+    this.fitModel();
+  }
+
+  private applyCanvasFit(target: ExportDimensions): void {
+    if (!this.app) return;
+    const availH = this.getVisibleViewportHeight();
+    const scale = Math.min(this.clientWidth / target.width, availH / target.height);
+    this.app.canvas.style.transform = `scale(${scale})`;
+  }
+
+  private clearCanvasFit(): void {
+    if (!this.app) return;
+    this.app.canvas.style.transform = "";
+    this.app.canvas.style.transformOrigin = "";
   }
 
   async captureScreenshot(): Promise<void> {
     if (!this.app || !this.currentModel) return;
     const target = this.getExportDimensions();
-    const origW = this.clientWidth,
-      origH = this.clientHeight,
-      origRes = this.app.renderer.resolution;
-
-    if (this.overlayGraphics) this.overlayGraphics!.visible = false;
-
-    this.app.renderer.resolution = 1;
-    this.app.renderer.resize(target.width, target.height);
-    this.renderModelForExport(target.width, target.height);
+    this.applyExportSize(target);
     this.app.render();
 
     const canvasBlob: Blob = await new Promise((resolve, reject) => {
@@ -1113,10 +1141,7 @@ export class Live2DViewer extends LitElement {
     link.href = URL.createObjectURL(canvasBlob);
     link.click();
 
-    this.app.renderer.resolution = origRes;
-    this.app.renderer.resize(origW, origH);
-    if (this.overlayGraphics) this.overlayGraphics!.visible = true;
-    this.fitModel();
+    this.restoreViewportSize();
 
     this.statusMsg = `Saved screenshot (${target.width}x${target.height})`;
   }
@@ -1134,10 +1159,8 @@ export class Live2DViewer extends LitElement {
     if (!this.app || !this.currentModel) return;
 
     const target = this.getExportDimensions();
-    if (this.overlayGraphics) this.overlayGraphics!.visible = false;
 
-    this.app.renderer.resolution = 1;
-    this.app.renderer.resize(target.width, target.height);
+    this.applyExportSize(target);
     this.renderModelForExport(target.width, target.height);
 
     this.recordedChunks = [];
@@ -1159,10 +1182,7 @@ export class Live2DViewer extends LitElement {
       a.download = `live2d-recording-${target.width}x${target.height}-${Date.now()}.webm`;
       a.click();
 
-      this.app!.renderer.resolution = this.getResolutionValue();
-      this.app!.renderer.resize(this.clientWidth, this.clientHeight);
-      if (this.overlayGraphics) this.overlayGraphics!.visible = true;
-      this.fitModel();
+      this.restoreViewportSize();
       this.statusMsg = "Video export complete!";
     }, { signal: this.abortController.signal });
 
