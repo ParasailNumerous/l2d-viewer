@@ -58,7 +58,7 @@ window.addEventListener("languagechange", () => {
 @customElement("live2d-viewer")
 @localized()
 export class Live2DViewer extends LitElement {
-  @property({ type: String }) selectedModelPath: string = "";
+  @property({ type: String }) modelPath: string = "";
   @property({ type: String }) archivePath?: string;
   @property({ type: Boolean }) disableImportFile: boolean = false;
   @property({ type: Array }) motionGroups: string[] = [];
@@ -561,6 +561,9 @@ export class Live2DViewer extends LitElement {
   override updated(changedProperties: Map<string, unknown>): void {
     if (changedProperties.has("archivePath")) {
       this.processArchivePath();
+    }
+    if (changedProperties.has("modelPath")) {
+      this.loadModelSource(this.modelPath);
     }
   }
 
@@ -1156,7 +1159,7 @@ export class Live2DViewer extends LitElement {
 
   async loadModelSource(source: string | File[]): Promise<void> {
     this.lastModelSource = source;
-    if (typeof source === "string") this.selectedModelPath = source;
+    if (typeof source === "string") this.modelPath = source;
     this.statusMsg = `Loading model...`;
 
     if (!this.ensureApp()) {
@@ -1809,7 +1812,7 @@ export class Live2DViewer extends LitElement {
         if (this.lastModelSource) {
           this.loadModelSource(this.lastModelSource);
         } else {
-          this.loadModelSource(this.selectedModelPath);
+          this.loadModelSource(this.modelPath);
         }
       }}
               />
