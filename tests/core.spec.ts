@@ -52,4 +52,11 @@ test.describe('Core logic', () => {
     await page.getByTestId('viewer').evaluate((el: Live2DViewer) => el.archivePath = "https://cdn.jsdelivr.net/gh/ParasailNumerous/l2d-viewer@0.1.2/tests/fixtures/pacchivlnt.zip");
     await expect(page.getByTestId('status')).toContainText(/Loaded/, { timeout: 15000 });
   });
+
+  test('modelPath parameter loads file', async ({ page }) => {
+    await gotoViewer(page);
+    const viewer = page.getByTestId('viewer');
+    await viewer.evaluate((el: Live2DViewer) => el.modelPath = 'https://cdn.jsdelivr.net/gh/ParasailNumerous/StellaSoraLive2Ds@unzipped/assets/Nazuna%2003/live2d/base/15603_base.model3.json');
+    await expect(page.getByTestId('status')).toContainText(/Loaded/, { timeout: 15000 });
+  });
 });
