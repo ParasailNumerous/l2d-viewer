@@ -5,7 +5,32 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>l2d-viewer</title>
-    <link rel="stylesheet" href="./src/index.css" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-size: 1rem;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+
+        color-scheme: dark;
+      }
+
+      live2d-viewer {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
     <script src="https://cubism.live2d.com/sdk-web/core/05/live2dcubismcore.min.js"></script>
     <script type="module" src="/src/live2d-viewer.ts"></script>
   </head>
