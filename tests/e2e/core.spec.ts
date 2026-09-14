@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { gotoViewer, loadFixture, fixturePath } from './helpers';
 import fs from 'fs';
 
-import type { Live2DViewer } from '../src/live2d-viewer';
+import type { Live2DViewer } from '../../src/live2d-viewer';
 
 test.describe('Core logic', () => {
   test('fixture model loads', async ({ page }) => {

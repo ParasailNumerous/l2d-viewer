@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loadFixture, dispatchPinchZoom, dispatchPointerPan, dispatchWheelZoom } from './helpers';
 
-import type { Live2DViewer } from '../src/live2d-viewer';
+import type { Live2DViewer } from '../../src/live2d-viewer';
 
 test.describe('Viewport interactions', () => {
   test('diagonal up left pan', async ({ page }) => {
