@@ -93,6 +93,8 @@ export class Live2DViewer extends LitElement {
   private recordedChunks: Blob[] = [];
   private isPanning: boolean = false;
   private abortController: AbortController = new AbortController();
+  private loadGeneration = 0;
+  private loadAbortController: AbortController | null = null;
 
   private touchPointers: Map<number, TouchPoint> = new Map();
   private ignoredPointerIds: Set<number> = new Set();
@@ -127,7 +129,8 @@ export class Live2DViewer extends LitElement {
     // PIXI needs to be recreated because it is torn down on disconnect
     this.updateComplete.then(() => {
       if (!this.app) this.initPixi();
-      if (this.lastModelSource && !this.currentModel && this.app) {
+      // only load if there's no load pending
+      if (this.lastModelSource && !this.currentModel && this.app && !this.loadAbortController) {
         void this.loadModelSource(this.lastModelSource);
       } else if (this.currentModel && this.app) {
         try { this.app.stage.addChild(this.currentModel); } catch { }
@@ -151,7 +154,10 @@ export class Live2DViewer extends LitElement {
       this.processArchivePath();
     }
     if (changedProperties.has("modelPath")) {
-      this.loadModelSource(this.modelPath);
+      const old = changedProperties.get("modelPath") as string | undefined;
+      if (old !== this.modelPath) {
+        this.loadModelSource(this.modelPath);
+      }
     }
   }
 
@@ -160,6 +166,10 @@ export class Live2DViewer extends LitElement {
     this.viewportPressedKeys.clear();
     this.stopKeyLoop();
     this.abortController.abort();
+    if (this.loadAbortController) {
+      this.loadAbortController.abort();
+      this.loadAbortController = null;
+    }
     if (this.mediaRecorder) {
       try {
         if (this.mediaRecorder.state !== "inactive") this.mediaRecorder.stop();
@@ -182,6 +192,10 @@ export class Live2DViewer extends LitElement {
   }
 
   private destroyPixi(): void {
+    if (this.loadAbortController) {
+      this.loadAbortController.abort();
+      this.loadAbortController = null;
+    }
     if (this.rootResizeObserver) {
       this.rootResizeObserver.disconnect();
       this.rootResizeObserver = null;
@@ -747,11 +761,31 @@ export class Live2DViewer extends LitElement {
 
   async loadModelSource(source: string | File[]): Promise<void> {
     this.lastModelSource = source;
-    if (typeof source === "string") this.modelPath = source;
+    if (typeof source === "string" && source !== this.modelPath) {
+      this.modelPath = source;
+    }
+    const myGeneration = ++this.loadGeneration;
+    if (this.loadAbortController) this.loadAbortController.abort();
+    const controller = new AbortController();
+    this.loadAbortController = controller;
+    const signal = controller.signal;
+
+    // Ignore empty string loads (initial property default)
+    if (typeof source === "string" && !source) {
+      if (myGeneration === this.loadGeneration) this.loadAbortController = null;
+      return;
+    }
+
     this.statusMsg = `Loading model...`;
+
+    if (signal.aborted || myGeneration !== this.loadGeneration) {
+      if (myGeneration === this.loadGeneration) this.loadAbortController = null;
+      return;
+    }
 
     if (!this.ensureApp()) {
       this.statusMsg = `Load failed: renderer not initialized`;
+      if (myGeneration === this.loadGeneration) this.loadAbortController = null;
       return;
     }
 
@@ -761,13 +795,19 @@ export class Live2DViewer extends LitElement {
       this.currentModel = null;
     }
 
+    let newModel: InstanceType<typeof Live2DModel> | null = null;
     try {
       if (typeof source === "string") {
-        const res = await fetch(source);
+        const res = await fetch(source, { signal });
+        if (signal.aborted || myGeneration !== this.loadGeneration) {
+          return;
+        }
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        this.currentModelJson = await res.json();
+        const json = await res.json();
+        if (signal.aborted || myGeneration !== this.loadGeneration) return;
+        this.currentModelJson = json;
         this.populateMotionsAndExpressions();
-        this.currentModel = await Live2DModel.from(source, {
+        newModel = await Live2DModel.from(source, {
           autoHitTest: this.mouseTracking,
           autoFocus: this.mouseTracking,
         });
@@ -778,22 +818,55 @@ export class Live2DViewer extends LitElement {
             f.name.endsWith(".model.json")
         );
         if (!modelFile) throw new Error("No model settings file found!");
+        if (signal.aborted || myGeneration !== this.loadGeneration) return;
         this.currentModelJson = JSON.parse(await modelFile.text());
+        if (signal.aborted || myGeneration !== this.loadGeneration) return;
         this.populateMotionsAndExpressions();
-        this.currentModel = await Live2DModel.from(source, {
+        newModel = await Live2DModel.from(source, {
           autoHitTest: this.mouseTracking,
           autoFocus: this.mouseTracking,
         });
       }
 
-      if (!this.app) throw new Error("PIXI app not initialized");
+      if (signal.aborted || myGeneration !== this.loadGeneration) {
+        if (newModel) {
+          try { newModel.destroy({ children: true } as any); } catch {}
+        }
+        return;
+      }
+      if (!this.app) {
+        if (newModel) {
+          try { newModel.destroy({ children: true } as any); } catch {}
+        }
+        throw new Error("PIXI app not initialized");
+      }
+      if (!this.app.stage) {
+        if (newModel) {
+          try { newModel.destroy({ children: true } as any); } catch {}
+        }
+        return;
+      }
+      this.currentModel = newModel;
       this.app.stage.addChild(this.currentModel!);
       this.fitModel();
       this.playMotion();
       this.statusMsg = `Loaded model successfully!`;
     } catch (err: any) {
+      if (signal.aborted || myGeneration !== this.loadGeneration) {
+        if (newModel) {
+          try { newModel.destroy({ children: true } as any); } catch {}
+        }
+        return;
+      }
+      if (err?.name === "AbortError") return;
       console.error(err);
       this.statusMsg = `Load failed: ${err.message || err}`;
+    } finally {
+      if (myGeneration === this.loadGeneration) {
+        this.loadAbortController = null;
+      } else if (newModel && this.currentModel !== newModel) {
+        // Stale generation that created a model but was superseded: already destroyed above
+      }
     }
   }
 
