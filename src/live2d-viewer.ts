@@ -1,14 +1,27 @@
 import { LitElement, html } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { Application, Graphics, extensions } from "pixi.js";
 import { unzipSync } from "fflate";
 import { Live2DModel, Live2DPlugin, MotionPriority } from "untitled-pixi-live2d-engine/cubism";
+import { Maximize, Minimize, MoveHorizontal, MoveVertical, Scaling, ScanSquare, Upload, Video } from 'lucide-static';
 
 import { configureLocalization, localized, msg } from '@lit/localize';
 import { sourceLocale, targetLocales } from './generated/locale-codes.js';
 
 import { live2DViewerStyles } from "./styles/live2d-viewer-styles.js";
 import { modernNormalizeStyles } from "./styles/modern-normalize-styles.js";
+
+import "./components/icon-button/icon-button.js";
+import "./components/button/button.js";
+import "./components/field/field.js";
+import "./components/playback-bar/playback-bar.js";
+import "./components/tabs/tabs.js";
+import "./components/tile-grid/tile-grid.js";
+import type { TileGridSelectDetail } from "./components/tile-grid/tile-grid.js";
+import "./components/tile-item/tile-item.js";
+import "./components/list-item/list-item.js";
+
 import {
   clampScale,
   getExportModelPosition,
@@ -851,19 +864,19 @@ export class Live2DViewer extends LitElement {
 
       if (signal.aborted || myGeneration !== this.loadGeneration) {
         if (newModel) {
-          try { newModel.destroy({ children: true } as any); } catch {}
+          try { newModel.destroy({ children: true } as any); } catch { }
         }
         return;
       }
       if (!this.app) {
         if (newModel) {
-          try { newModel.destroy({ children: true } as any); } catch {}
+          try { newModel.destroy({ children: true } as any); } catch { }
         }
         throw new Error("PIXI app not initialized");
       }
       if (!this.app.stage) {
         if (newModel) {
-          try { newModel.destroy({ children: true } as any); } catch {}
+          try { newModel.destroy({ children: true } as any); } catch { }
         }
         return;
       }
@@ -875,7 +888,7 @@ export class Live2DViewer extends LitElement {
     } catch (err: any) {
       if (signal.aborted || myGeneration !== this.loadGeneration) {
         if (newModel) {
-          try { newModel.destroy({ children: true } as any); } catch {}
+          try { newModel.destroy({ children: true } as any); } catch { }
         }
         return;
       }
@@ -1085,36 +1098,6 @@ export class Live2DViewer extends LitElement {
     }
   }
 
-  private handleTileKeydown<T>(
-    e: KeyboardEvent,
-    items: T[],
-    selectedValue: string,
-    onSelect: (val: string) => void,
-    getValue?: (item: T) => string
-  ): void {
-    const target = e.currentTarget as HTMLElement;
-    const cols = Math.max(
-      1,
-      Math.floor(target.offsetWidth / 100)
-    );
-    const vals = items.map((i) => (getValue ? getValue(i) : (i as unknown as string)));
-    const idx = vals.indexOf(selectedValue);
-    if (idx === -1) return;
-    let next = idx;
-    if (e.key === "ArrowRight") next = Math.min(vals.length - 1, idx + 1);
-    else if (e.key === "ArrowLeft") next = Math.max(0, idx - 1);
-    else if (e.key === "ArrowDown")
-      next = Math.min(vals.length - 1, idx + cols);
-    else if (e.key === "ArrowUp") next = Math.max(0, idx - cols);
-    else return;
-    e.preventDefault();
-    onSelect(vals[next]);
-    this.updateComplete.then(() => {
-      const btns = target.querySelectorAll<HTMLButtonElement>(".tile-btn");
-      btns[next]?.focus();
-    });
-  }
-
   private isViewportControlKey(code: string): boolean {
     return (
       (this.enableArrowKeyPan && (code === "ArrowUp" ||
@@ -1248,347 +1231,313 @@ export class Live2DViewer extends LitElement {
     getLabel?: (item: T) => string,
     getValue?: (item: T) => string
   ) {
+    const vals = items.map((item) => (getValue ? getValue(item) : (item as unknown as string)));
+    const selectedIndex = vals.indexOf(selectedValue);
     return html`
-      <div
-        class="tile-grid"
+      <stellar-tile-grid
         part="tile-grid"
-        @keydown=${(e: KeyboardEvent) =>
-        this.handleTileKeydown(e, items, selectedValue, onSelect, getValue)}
+        selected-index=${selectedIndex}
+        @tile-select=${(e: CustomEvent<TileGridSelectDetail>) => {
+        const idx = e.detail.index;
+        if (idx >= 0 && idx < vals.length) {
+          onSelect(vals[idx]);
+        }
+      }}
       >
         ${items.length
         ? items.map((item) => {
           const val = getValue ? getValue(item) : (item as unknown as string);
           const lbl = getLabel ? getLabel(item) : (item as unknown as string);
+          const isSelected = selectedValue === val;
           return html`
-                  <button
-                    type="button"
-                    part="tile-button ${selectedValue === val ? "active" : ""}"
-                    class="tile-btn ${selectedValue === val ? "active" : ""}"
-                    title=${lbl}
-                    tabindex=${selectedValue === val ? "0" : "-1"}
+                  <stellar-tile-item
+                    gridcell
+                    value=${val}
+                    label=${lbl}
+                    ?selected=${isSelected}
+                    part="tile-button ${isSelected ? "active" : ""}"
+                    class="tile-btn ${isSelected ? "active" : ""}"
                     data-testid="tile-btn"
                     @click=${() => onSelect(val)}
                   >
-                    <span class="tile-btn--label" part="tile-label">${lbl}</span>
-                  </button>
+                  </stellar-tile-item>
                 `;
         })
         : html`
                 <div class="empty-state" part="empty-state">${msg('None available', { desc: 'Tile grid empty state' })}</div>
               `
       }
-      </div>
+      </stellar-tile-grid>
     `;
   }
 
   override render() {
     return html`
-      <slot name="before-viewport"></slot>
-      <section id="viewport" part="viewport" data-testid="viewport" autofocus tabindex="0"><slot name="viewport"></slot></section>
-      <slot name="after-viewport"></slot>
+      <section id="viewport" part="viewport" data-testid="viewport" autofocus tabindex="0"></section>
 
       ${this.isDragging
         ? html`
-              <div class="drop-overlay" part="drop-overlay"><span part="drop-overlay-label">${msg('Drop ZIP file', { desc: 'Text overlaid when file is being dragged over viewport' })}</span><slot name="drop-overlay"></slot></div>
+              <div class="drop-overlay" part="drop-overlay"><span part="drop-overlay-label">${msg('Drop ZIP file', { desc: 'Text overlaid when file is being dragged over viewport' })}</span></div>
             `
         : ""
       }
 
-      <slot name="before-actions"></slot>
       <div class="small-screen-actions-container" part="small-screen-actions-container">
         <div class="small-screen-actions" part="small-screen-actions">
-          <slot name="small-screen-actions-start"></slot>
-          <button
-            type="button"
-            class="drop-btn"
+          <stellar-icon-button
+            variant="primary"
+            label="${msg('Import')}"
             part="button import-button"
             data-testid="import-action"
             ?hidden=${this.disableImportFile}
             @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
           >
-            <slot name="import-label">${msg('Import')} <kbd part="kbd">I</kbd></slot>
-          </button>
-          <slot name="small-screen-actions-center"></slot>
+            ${unsafeHTML(Upload)}
+            <!-- <kbd part="kbd">I</kbd> -->
+          </stellar-icon-button>
         </div>
         <div class="small-screen-actions" part="small-screen-actions">
-          <button part="button icon-button" data-testid="fullscreen-action" aria-label=${msg('Toggle fullscreen', { desc: 'Icon button label' })} title=${msg('Toggle fullscreen', { desc: 'Icon button label' })} @click=${this.toggleFullscreen}>
-            ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
-            <kbd>F</kbd>
-          </button>
-          <button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot} ?hidden=${this.currentModel === null}>
-            <slot name="screenshot-label">${msg('Screenshot')} <kbd part="kbd">E</kbd></slot>
-          </button>
-          <button part="button record-button" data-testid="record-action" @click=${this.toggleRecording} ?hidden=${this.currentModel === null}>
-            <slot name="record-label">${this.isRecording ? msg('Stop', { desc: 'Small screen: stop recording action' }) : msg('Record', { desc: 'Small screen: start recording action' })} <kbd part="kbd">R</kbd></slot>
-          </button>
-          <slot name="small-screen-actions-end"></slot>
+          <stellar-icon-button variant="base" class="elevation-1" part="button icon-button" data-testid="fullscreen-action" aria-label=${msg('Toggle fullscreen', { desc: 'Icon button label' })} title=${msg('Toggle fullscreen', { desc: 'Icon button label' })} @click=${this.toggleFullscreen}>
+            ${this.isFullscreen ? unsafeHTML(Minimize) : unsafeHTML(Maximize)
+      }
+          </stellar-icon-button>
+          <stellar-icon-button variant="base" label="${msg('Screenshot')}" class="elevation-1" part="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+            ${unsafeHTML(ScanSquare)}
+          </stellar-icon-button>
+          <stellar-button variant="base" class="elevation-1" part="button record-button" data-testid="record-action" @click=${this.toggleRecording}>
+            ${unsafeHTML(Video)}
+            ${this.isRecording ? msg('Stop', { desc: 'Small screen: stop recording action' }) : msg('Record', { desc: 'Small screen: start recording action' })} <kbd part="kbd">R</kbd>
+          </stellar-button>
         </div>
       </div>
-      <slot name="after-actions"></slot>
 
-      <aside part="controls" data-testid="controls">
-        <slot name="controls-start"></slot>
+      <aside class="elevation-3" part="controls" data-testid="controls">
         <section class="panel" part="panel">
-          <slot name="panel-motion-groups-before"></slot>
           <div class="stack" part="stack" data-testid="motion-group-collection">
             <span class="section-label" part="section-label">${msg('Motion Group', { desc: 'Live2D Cubism name, leave as is or use its vocabulary' })}</span>
             ${this.renderTileGrid(
-          this.motionGroups,
-          this.selectedGroup,
-          (g: string) => {
-            if (this.modelVariants.length > 1) {
-              const variant = this.modelVariants.find((v) => v.name === g);
-              if (variant) {
-                this.selectedGroup = g;
-                void this.loadModelSource(variant.files);
-                return;
-              }
+        this.motionGroups,
+        this.selectedGroup,
+        (g: string) => {
+          if (this.modelVariants.length > 1) {
+            const variant = this.modelVariants.find((v) => v.name === g);
+            if (variant) {
+              this.selectedGroup = g;
+              void this.loadModelSource(variant.files);
+              return;
             }
-            this.selectedGroup = g;
-            this.updateMotionList();
-            this.playMotion();
           }
-        )}
+          this.selectedGroup = g;
+          this.updateMotionList();
+          this.playMotion();
+        }
+      )}
           </div>
-          <slot name="panel-motion-groups-after"></slot>
           <div class="stack" part="stack" data-testid="motion-collection">
             <span class="section-label" part="section-label">${msg('Motion', { desc: 'Live2D Cubism name, leave as is or use its vocabulary' })}</span>
             ${this.renderTileGrid(
-          this.motions,
-          this.selectedMotion,
-          (mVal: string) => {
-            this.selectedMotion = mVal;
-            this.playMotion();
-          },
-          (m) => m.label,
-          (m) => m.value
-        )}
+        this.motions,
+        this.selectedMotion,
+        (mVal: string) => {
+          this.selectedMotion = mVal;
+          this.playMotion();
+        },
+        (m) => m.label,
+        (m) => m.value
+      )}
           </div>
-          <slot name="panel-motions-after"></slot>
           <div class="stack" part="stack" data-testid="expression-collection">
             <span class="section-label" part="section-label">${msg('Expression', { desc: 'Live2D Cubism name, leave as is or use its vocabulary' })}</span>
             ${this.renderTileGrid(
-          this.expressions,
-          this.selectedExpression,
-          (xVal: string) => {
-            this.selectedExpression = xVal;
-            this.playExpression();
-          },
-          (x) => x.name,
-          (x) => x.value
-        )}
-          <slot name="panel-expressions-after"></slot>
+        this.expressions,
+        this.selectedExpression,
+        (xVal: string) => {
+          this.selectedExpression = xVal;
+          this.playExpression();
+        },
+        (x) => x.name,
+        (x) => x.value
+      )}
           </div>
-          <slot name="panel-controls-after"></slot>
         </section>
 
         <section class="panel" part="panel">
-          <slot name="panel-export-before"></slot>
           <div class="grid-underflow grid-2 small-screen-hidden" part="export-actions">
-            <button
-              type="button"
-              class="drop-btn grid-span"
+            <stellar-button
+              class="grid-span"
+              variant="primary"
               part="button import-button"
               data-testid="import-action"
               ?hidden=${this.disableImportFile}
               @click=${() =>
         (this.shadowRoot?.querySelector("#zipInput") as HTMLInputElement)?.click()}
             >
-              <slot name="import-label-desktop">${msg('Import')}
-              <kbd part="kbd">I</kbd></slot>
-            </button>
-            <button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot} ?disabled=${this.currentModel === null}>
-              <slot name="screenshot-label-desktop">${msg('Screenshot')}
-              <kbd part="kbd">E</kbd></slot>
-            </button>
-            <button part="button record-button" data-testid="record-action" @click=${this.toggleRecording} ?disabled=${this.currentModel === null}>
-              <slot name="record-label-desktop">${this.isRecording ? msg('Stop recording') : msg('Start recording')}
-              <kbd part="kbd">R</kbd></slot>
-            </button>
+              ${msg('Import')}
+              <kbd part="kbd">I</kbd>
+            </stellar-button>
+            <stellar-button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+              ${msg('Screenshot')}<kbd part="kbd">E</kbd>
+            </stellar-button>
+            <stellar-button part="button record-button" data-testid="record-action" @click=${this.toggleRecording}>
+              ${this.isRecording ? msg('Stop recording') : msg('Start recording')}<kbd part="kbd">R</kbd>
+            </stellar-button>
           </div>
           <div class="cluster cluster--spread grid-span" part="cluster">
-            <label for="exportResolutionSelect" part="label">${msg('Export resolution')}</label>
-            <select
-              id="exportResolutionSelect"
-              part="select"
-              .value=${this.exportResolution}
-              @change=${(e: Event) => {
+  <label for="exportResolutionSelect" part="label">${msg('Export resolution')}</label>
+  <select
+    id="exportResolutionSelect"
+    part="select"
+    .value=${this.exportResolution}
+    @change=${(e: Event) => {
         this.exportResolution = (e.target as HTMLSelectElement).value;
         this.fitModel();
       }}
-            >
-              <option value="viewport">${msg('Viewport', { desc: 'Export resolution dropdown option' })}</option>
-              <option value="720p">720p</option>
-              <option value="1080p">1080p</option>
-              <option value="4k">4K</option>
-              <option value="custom">${msg('Custom', { desc: 'Export resolution dropdown option' })}</option>
-            </select>
-          </div>
-          ${this.exportResolution === "custom"
+  >
+    <option value="viewport">${msg('Viewport', { desc: 'Export resolution dropdown option' })}</option>
+    <option value="720p">720p</option>
+    <option value="1080p">1080p</option>
+    <option value="4k">4K</option>
+    <option value="custom">${msg('Custom', { desc: 'Export resolution dropdown option' })}</option>
+  </select>
+</div>
+${this.exportResolution === "custom"
         ? html`
-                  <div class="grid-2 grid-standard">
-                    <div class="field" part="field">
-                      <label class="input-wrap" part="input-wrap" for="customW">
-                        <span class="field field--start" part="field-addon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-move-horizontal-icon lucide-move-horizontal"><path d="m18 8 4 4-4 4"/><path d="M2 12h20"/><path d="m6 8-4 4 4 4"/></svg></span>
-                        <input
-                          id="customW"
-                          part="input"
-                          aria-label=${msg('Custom export width', { desc: 'Input field label' })}
-                          title=${msg('Custom export width', { desc: 'Input field label' })}
-                          type="number"
-                          min="100"
-                          .value=${this.customWidth.toString()}
-                          @input=${(e: Event) => {
+      <div class="grid-2 grid-standard">
+        <stellar-field
+          type="number"
+          min="100"
+          aria-label=${msg('Custom export width', { desc: 'Input field label' })}
+          title=${msg('Custom export width', { desc: 'Input field label' })}
+          .value=${this.customWidth.toString()}
+          @input=${(e: Event) => {
             this.customWidth =
               Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
             this.fitModel();
           }}
-                        />
-                      </label>
-                    </div>
-                    <div class="field" part="field">
-                      <label class="input-wrap" part="input-wrap" for="customH">
-                        <span class="field field--start" part="field-addon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-move-vertical-icon lucide-move-vertical"><path d="M12 2v20"/><path d="m8 18 4 4 4-4"/><path d="m8 6 4-4 4 4"/></svg></span>
-                        <input
-                          id="customH"
-                          part="input"
-                          aria-label=${msg('Custom export height', { desc: 'Input field label' })}
-                          title=${msg('Custom export height', { desc: 'Input field label' })}
-                          type="number"
-                          min="100"
-                          .value=${this.customHeight.toString()}
-                          @input=${(e: Event) => {
+        >
+          ${unsafeHTML(MoveHorizontal)}
+        </stellar-field>
+        <stellar-field
+          type="number"
+          min="100"
+          aria-label=${msg('Custom export height', { desc: 'Input field label' })}
+          title=${msg('Custom export height', { desc: 'Input field label' })}
+          .value=${this.customHeight.toString()}
+          @input=${(e: Event) => {
             this.customHeight =
               Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
             this.fitModel();
           }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                `
+        >
+          ${unsafeHTML(MoveVertical)}
+        </stellar-field>
+      </div>
+    `
         : ""
       }
-          <slot name="camera-before"></slot>
-          <div class="stack" part="stack camera-stack">
-            <span class="section-label section-label--spread" part="section-label">
-              ${msg('Camera')}
-              <div class="spacer"></div>
-              <span class="keyboard-only">${msg("Pan", { desc: 'Label for keybinds; keep under 8 characters' })}<kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
-              <span class="keyboard-only">${msg("Zoom", { desc: 'Label for keybinds; keep under 8 characters' })}<kbd>-</kbd> / <kbd>=</kbd></span>
-            </span>
-            <div class="cluster" part="cluster camera-cluster">
-              <div class="field" part="field">
-                <label class="input-wrap" part="input-wrap" for="panXInput">
-                  <span class="field field--start" part="field-addon" aria-hidden="true">X</span>
-                  <input
-                    id="panXInput"
-                    part="input"
-                    aria-label=${msg('Pan X', { desc: 'Input field label' })}
-                    title=${msg('Pan X', { desc: 'Input field label' })}
-                    type="number"
-                    .value=${this.panX.toString()}
-                    @input=${(e: Event) => {
+
+<div class="stack" part="stack camera-stack">
+  <span class="section-label section-label--spread" part="section-label">
+    ${msg('Camera')}
+    <div class="spacer"></div>
+    <span class="keyboard-only">${msg("Pan", { desc: 'Label for keybinds; keep under 8 characters' })}<kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></span>
+    <span class="keyboard-only">${msg("Zoom", { desc: 'Label for keybinds; keep under 8 characters' })}<kbd>-</kbd> / <kbd>=</kbd></span>
+  </span>
+  <div class="cluster" part="cluster camera-cluster">
+    <stellar-field
+      type="number"
+      aria-label=${msg('Pan X', { desc: 'Input field label' })}
+      title=${msg('Pan X', { desc: 'Input field label' })}
+      .value=${this.panX.toString()}
+      @input=${(e: Event) => {
         this.panX = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
         this.fitModel();
       }}
-                  />
-                </label>
-              </div>
-              <div class="field" part="field">
-                <label class="input-wrap" part="input-wrap" for="panYInput">
-                  <span class="field field--start" part="field-addon" aria-hidden="true">Y</span>
-                  <input
-                    id="panYInput"
-                    part="input"
-                    aria-label=${msg('Pan Y', { desc: 'Input field label' })}
-                    title=${msg('Pan Y', { desc: 'Input field label' })}
-                    type="number"
-                    .value=${this.panY.toString()}
-                    @input=${(e: Event) => {
+    >
+      <span slot="start" aria-hidden="true">X</span>
+    </stellar-field>
+    <stellar-field
+      type="number"
+      aria-label=${msg('Pan Y', { desc: 'Input field label' })}
+      title=${msg('Pan Y', { desc: 'Input field label' })}
+      .value=${this.panY.toString()}
+      @input=${(e: Event) => {
         this.panY = Number.parseFloat((e.target as HTMLInputElement).value) || 0;
         this.fitModel();
       }}
-                  />
-                </label>
-              </div>
-              <div class="field" part="field">
-                <label class="input-wrap" part="input-wrap" for="scaleInput">
-                  <span class="field field--start" part="field-addon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scaling-icon lucide-scaling"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M14 15H9v-5"/><path d="M16 3h5v5"/><path d="M21 3 9 15"/></svg></span>
-                  <input
-                    id="scaleInput"
-                    part="input"
-                    aria-label=${msg('Scale', { desc: 'Input field label' })}
-                    title=${msg('Scale', { desc: 'Input field label' })}
-                    type="number"
-                    min="0.1"
-                    step="0.05"
-                    .value=${this.scale.toString()}
-                    @input=${(e: Event) => {
+    >
+      <span slot="start" aria-hidden="true">Y</span>
+    </stellar-field>
+    <stellar-field
+      type="number"
+      min="0.1"
+      step="0.05"
+      aria-label=${msg('Scale', { desc: 'Input field label' })}
+      title=${msg('Scale', { desc: 'Input field label' })}
+      .value=${this.scale.toString()}
+      @input=${(e: Event) => {
         this.scale = Number.parseFloat((e.target as HTMLInputElement).value) || 0.9;
         this.fitModel();
       }}
-                  />
-                </label>
-              </div>
-              <button part="button reset-button" data-testid="reset-action" @click=${this.resetView}>
-                ${msg('Reset')}
-              </button>
-            </div>
-            <slot name="camera-after"></slot>
-          </div>
-        </section>
+    >
+      <!-- TODO: hack -->
+      <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(Scaling)}</span>
+    </stellar-field>
+    <stellar-button part="button reset-button" data-testid="reset-action" @click=${this.resetView}>
+      ${msg('Reset')}
+    </stellar-button>
+  </div>
+</div>
+</section>
 
-        <slot name="panel-export-after"></slot>
-        </section>
+</section>
 
-        <details class="panel" part="panel advanced-panel">
-          <summary part="advanced-summary">${msg('Advanced')}</summary>
-          <slot name="advanced-before"></slot>
-          <div class="cluster cluster--spread" part="cluster">
-            <label for="displayResolutionSelect" part="label">${msg('Resolution scale')}</label>
-            <select
-              id="displayResolutionSelect"
-              part="select"
-              .value=${this.resolution}
-              @change=${(e: Event) => {
+<details class="panel" part="panel advanced-panel">
+  <summary part="advanced-summary">${msg('Advanced')}</summary>
+  <div class="cluster cluster--spread" part="cluster">
+    <label for="displayResolutionSelect" part="label">${msg('Resolution scale')}</label>
+    <select
+      id="displayResolutionSelect"
+      part="select"
+      .value=${this.resolution}
+      @change=${(e: Event) => {
         this.resolution = (e.target as HTMLSelectElement).value;
         this.resizeRenderer();
       }}
-            >
-              <option value="device">${msg('Device', { desc: 'Dropdown option for display resolution scale' })}</option>
-              <option value="1">${msg('1x', { desc: 'Dropdown option for display resolution scale' })}</option>
-              <option value="1.5">${msg('1.5x', { desc: 'Dropdown option for display resolution scale' })}</option>
-              <option value="2">${msg('2x', { desc: 'Dropdown option for display resolution scale' })}</option>
-              <option value="2.5">${msg('2.5x', { desc: 'Dropdown option for display resolution scale' })}</option>
-              <option value="3">${msg('3x', { desc: 'Dropdown option for display resolution scale' })}</option>
-            </select>
-          </div>
-          <div class="stack" part="stack">
-            <div class="cluster cluster--spread" part="cluster">
-              <label for="showPreview" part="label">${msg('Framing guide')}</label>
-              <input
-                id="showPreview"
-                part="checkbox"
-                class="checkbox-custom"
-                type="checkbox"
-                .checked=${this.showFramingPreview}
-                @change=${(e: Event) => {
+    >
+      <option value="device">${msg('Device', { desc: 'Dropdown option for display resolution scale' })}</option>
+      <option value="1">${msg('1x', { desc: 'Dropdown option for display resolution scale' })}</option>
+      <option value="1.5">${msg('1.5x', { desc: 'Dropdown option for display resolution scale' })}</option>
+      <option value="2">${msg('2x', { desc: 'Dropdown option for display resolution scale' })}</option>
+      <option value="2.5">${msg('2.5x', { desc: 'Dropdown option for display resolution scale' })}</option>
+      <option value="3">${msg('3x', { desc: 'Dropdown option for display resolution scale' })}</option>
+    </select>
+  </div>
+  <div class="stack" part="stack">
+    <div class="cluster cluster--spread" part="cluster">
+      <label for="showPreview" part="label">${msg('Framing guide')}</label>
+      <input
+        id="showPreview"
+        part="checkbox"
+        class="checkbox-custom"
+        type="checkbox"
+        .checked=${this.showFramingPreview}
+        @change=${(e: Event) => {
         this.showFramingPreview = (e.target as HTMLInputElement).checked;
         this.updateFramingOverlay();
       }}
-              />
-            </div>
-            <div class="cluster cluster--spread" part="cluster">
-              <label for="mouseTrack" part="label">${msg('Mouse tracking')}</label>
-              <input
-                id="mouseTrack"
-                part="checkbox"
-                class="checkbox-custom"
-                type="checkbox"
-                .checked=${this.mouseTracking}
-                @change=${(e: Event) => {
+      />
+    </div>
+    <div class="cluster cluster--spread" part="cluster">
+      <label for="mouseTrack" part="label">${msg('Mouse tracking')}</label>
+      <input
+        id="mouseTrack"
+        part="checkbox"
+        class="checkbox-custom"
+        type="checkbox"
+        .checked=${this.mouseTracking}
+        @change=${(e: Event) => {
         this.mouseTracking = (e.target as HTMLInputElement).checked;
         if (this.lastModelSource) {
           this.loadModelSource(this.lastModelSource);
@@ -1596,43 +1545,38 @@ export class Live2DViewer extends LitElement {
           this.loadModelSource(this.modelPath);
         }
       }}
-              />
-            </div>
-          </div>
-          <slot name="advanced-after"></slot>
-        </details>
-        
-        <!-- Credits -->
-        <div class="panel credits" part="panel credits">
-          <slot name="credits-before"></slot>
-          <span part="credits-text">Based on <a part="link" target="_blank" href="https://github.com/lihaohong6/StellaSoraBot/blob/7f0064dc5a6f2cee75d03b594fcc239f3873df53/tools/live2d_viewer.html">lihaohong6/StellaSoraBot Live2D viewer</a></span>
-          <span part="credits-text"><a part="link" target="_blank" href="https://github.com/ParasailNumerous/l2d-viewer">Source code</a></span>
-          <slot name="credits"></slot>
-          <slot name="credits-after"></slot>
-        </div>
-        <slot name="controls-end"></slot>
-      </aside>
+      />
+    </div>
+  </div>
+</details>
 
-      <input
-        id="zipInput"
-        data-testid="zip-input"
-        type="file"
-        accept=".zip"
-        inert
-        aria-hidden="true"
-        @change=${(e: Event) => {
+<!-- Credits -->
+<div class="panel credits" part="panel credits">
+  <span part="credits-text">Based on <a part="link" target="_blank" href="https://github.com/lihaohong6/StellaSoraBot/blob/7f0064dc5a6f2cee75d03b594fcc239f3873df53/tools/live2d_viewer.html">lihaohong6/StellaSoraBot Live2D viewer</a></span>
+  <span part="credits-text"><a part="link" target="_blank" href="https://github.com/ParasailNumerous/l2d-viewer">Source code</a></span>
+</div>
+</aside>
+
+<input
+  id="zipInput"
+  data-testid="zip-input"
+  type="file"
+  accept=".zip"
+  inert
+  aria-hidden="true"
+  @change=${(e: Event) => {
         if (this.disableImportFile === true) return;
         const file = (e.target as HTMLInputElement).files?.[0];
         if (file) this.processArchiveFile(file);
       }}
-        />
+/>
 
-      <span id="status" part="status" role="status" data-testid="status">${this.statusMsg}<slot name="status"></slot></span>
+      <span class="elevation-3" id="status" part="status" role="status" data-testid="status">${this.statusMsg}</span>
 
-      <button part="button fullscreen-button" data-testid="fullscreen-action" class="fullscreen-action small-screen-hidden" aria-label=${msg('Toggle fullscreen', { desc: 'Icon button label' })} title=${msg('Toggle fullscreen', { desc: 'Icon button label' })} @click=${this.toggleFullscreen}>
-        ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
+      <stellar-button variant="base" class="elevation-1" data-testid="fullscreen-action" class="fullscreen-action small-screen-hidden" aria-label=${msg('Toggle fullscreen', { desc: 'Icon button label' })} title=${msg('Toggle fullscreen', { desc: 'Icon button label' })} @click=${this.toggleFullscreen}>
+        ${this.isFullscreen ? unsafeHTML(Minimize) : unsafeHTML(Maximize)}
         <kbd>F</kbd>
-      </button>
+      </stellar-button>
     `;
   }
 }

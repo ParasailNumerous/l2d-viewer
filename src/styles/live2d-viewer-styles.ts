@@ -14,7 +14,7 @@ export const live2DViewerStyles = css`
     contain: content;
     container-type: inline-size;
 
-    --bg-color: var(--stellar-canvas);
+    --bg-color: var(--stellar-base);
     --fg-color: var(--stellar-foreground);
     --surface-color: var(--stellar-surface);
     --primary-color: var(--stellar-primary);
@@ -28,7 +28,7 @@ export const live2DViewerStyles = css`
 
     accent-color: var(--primary-color);
     color-scheme: dark;
-    background: var(--bg-color);
+    background: var(--stellar-canvas);
     color: var(--fg-color);
   }
 
@@ -78,7 +78,7 @@ export const live2DViewerStyles = css`
     }
   }
 
-  select, input[type="number"], button {
+  select, input[type="number"] {
     --interactable-bg-color: transparent;
     background-color: var(--interactable-bg-color);
     border: 1px solid color-mix(in oklab, var(--fg-color) 50%, transparent);
@@ -105,14 +105,6 @@ export const live2DViewerStyles = css`
     color: inherit;
   }
 
-  button {
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
   .checkbox-custom {
     width: 1rem;
     height: 1rem;
@@ -135,13 +127,6 @@ export const live2DViewerStyles = css`
   .cluster--spread {
     align-items: center;
     justify-content: space-between;
-  }
-
-  .field {
-    display: flex;
-    min-width: 0;
-    flex: 1;
-    gap: var(--space);
   }
 
   .grid-underflow {
@@ -206,8 +191,7 @@ export const live2DViewerStyles = css`
   #status {
     position: absolute;
     z-index: 10;
-    background: color-mix(in oklab, var(--bg-color) 60%, transparent);
-    backdrop-filter: blur(4px);
+    background: var(--stellar-base);
   }
 
   aside {
@@ -276,56 +260,10 @@ export const live2DViewerStyles = css`
     align-items: center;
     flex: 1;
     min-width: 0;
-    .field {
-    position: absolute;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    }
-    .field--start, .field--end {
-    width: 1rem;
-    svg {
-        width: 1rem;
-        height: 1rem;
-        display: block;
-    }
-    }
-    .field--start {
-    inset-inline-start: 0.5rem;
-    }
-    .field--end {
-    inset-inline-end: 0.5rem;
-    }
-    &:has(.field--start) input {
-    padding-inline-start: 2rem;
-    }
-    &:has(.field--end) input {
-    padding-inline-end: 2rem;
-    }
-  }
-
-  .drop-btn {
-    background: var(--primary-color);
-    color: var(--primary-fg-color);
-    border: none;
-    &:not(:disabled) {
-    @media (hover: hover) {
-        &:hover {
-        background: color-mix(in oklab, var(--primary-color), currentColor var(--hover-mix));
-        }
-    }
-    &:active {
-        background: color-mix(in oklab, var(--primary-color), currentColor var(--active-mix));
-    }
-    }
   }
 
   .fullscreen-action {
-    --interactable-bg-color: color-mix(in oklab, var(--bg-color) 60%, transparent);
     position: absolute;
-    padding: calc(var(--space) * 2);
-    backdrop-filter: blur(4px);
     inset-inline-end: calc(var(--space) * 2);
     inset-block-end: calc(var(--space) * 2);
   }
@@ -368,17 +306,8 @@ export const live2DViewerStyles = css`
     display: flex;
     gap: var(--space);
   }
-  .small-screen-actions button {
-    --interactable-bg-color: color-mix(in oklab, var(--bg-color) 60%, transparent);
+  .small-screen-actions stellar-button, .small-screen-actions stellar-icon-button {
     pointer-events: auto;
-    backdrop-filter: blur(4px);
-    padding: 0 0.75rem;
-    min-height: 44px;
-    border-radius: 0.25rem;
-    &.drop-btn {
-    --interactable-bg-color: var(--primary-color);
-    border: none;
-    }
   }
 
   @container (width < 768px) {

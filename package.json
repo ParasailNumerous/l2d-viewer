@@ -38,6 +38,7 @@
     "@lit/localize": "^0.12.2",
     "fflate": "^0.8.3",
     "lit": "^3.3.3",
+    "lucide-static": "^1.61.0",
     "modern-normalize": "^3.0.1",
     "pixi.js": "8.22.0",
     "untitled-pixi-live2d-engine": "1.4.0"
