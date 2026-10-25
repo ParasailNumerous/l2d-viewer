@@ -92,6 +92,7 @@ export class StellarButton extends LitElement {
 
       button {
         display: inline-flex;
+        inline-size: 100%;
         min-block-size: var(--stellar-min-touch-target);
         align-items: center;
         justify-content: center;
