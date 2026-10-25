@@ -88,6 +88,8 @@ export class StellarButton extends LitElement {
       :host {
         display: inline-flex;
         vertical-align: middle;
+        --stellar-button-background: var(--stellar-surface);
+        --stellar-button-content: var(--stellar-foreground);
       }
 
       button {
@@ -100,73 +102,60 @@ export class StellarButton extends LitElement {
         padding: 0 10px;
         border: 0;
         border-radius: var(--stellar-radius-base);
-        background: var(--stellar-surface);
-        color: var(--stellar-foreground);
+        background: var(--stellar-button-background);
+        color: var(--stellar-button-content);
         font: inherit;
         line-height: 1;
         cursor: pointer;
         user-select: none;
-      }
-
-      :host([variant="surface"]) button {
-        background: var(--stellar-surface);
-        color: var(--stellar-foreground);
-      }
-
-      :host([variant="base"]) button {
-        background: var(--stellar-base);
-        color: var(--stellar-foreground);
-      }
-
-      :host([variant="primary"]) button {
-        background: var(--stellar-primary);
-        color: var(--stellar-on-primary);
-      }
-
-      :host([variant="selected"]) button,
-      :host([selected]) button {
-        border-radius: var(--stellar-radius-full);
-        background: var(--stellar-secondary);
-        color: var(--stellar-on-secondary);
-      }
-
-      :host([variant="text"]) button {
-        background: transparent;
-        color: var(--stellar-foreground);
-      }
-
-      @media (hover: hover) {
-        button:not(:disabled):hover {
-          background: color-mix(in oklab, currentColor var(--stellar-hover-mix), transparent);
+        &:focus-visible {
+          outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
+          outline-offset: var(--stellar-focus-ring-offset);
+        }
+  
+        &:disabled {
+          cursor: not-allowed;
+          opacity: 0.38;
         }
 
-        :host([variant="primary"]) button:not(:disabled):hover {
-          background: color-mix(in oklab, var(--stellar-primary), var(--stellar-on-primary) var(--stellar-hover-mix));
+        @media (hover: hover) {
+          &:not(:disabled):hover {
+            background: color-mix(in oklab, currentColor var(--stellar-hover-mix), var(--stellar-button-background));
+          }
+        }
+
+        &:not(:disabled):active {
+          background: color-mix(in oklab, currentColor var(--stellar-active-mix), var(--stellar-button-background));
         }
       }
-
-      button:not(:disabled):active {
-        background: color-mix(in oklab, currentColor var(--stellar-active-mix), transparent);
+      
+      :host([variant="surface"]) {
+        --stellar-button-background: var(--stellar-surface);
+        --stellar-button-content: var(--stellar-foreground);
       }
 
-      :host([variant="primary"]) button:not(:disabled):active {
-        background: color-mix(in oklab, var(--stellar-primary), var(--stellar-on-primary) var(--stellar-active-mix));
+      :host([variant="base"]) {
+        --stellar-button-background: var(--stellar-base);
+        --stellar-button-content: var(--stellar-foreground);
       }
 
-      button:focus-visible {
-        outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
-        outline-offset: var(--stellar-focus-ring-offset);
+      :host([variant="primary"]) {
+        --stellar-button-background: var(--stellar-primary);
+        --stellar-button-content: var(--stellar-on-primary);
       }
 
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.38;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
+      :host([variant="selected"]),
+      :host([selected]) {
+        --stellar-button-background: var(--stellar-secondary);
+        --stellar-button-content: var(--stellar-on-secondary);
         button {
-          transition: none;
+          border-radius: var(--stellar-radius-full);
         }
+      }
+
+      :host([variant="text"]) {
+        --stellar-button-background: transparent;
+        --stellar-button-content: var(--stellar-foreground);
       }
     `,
   ];
