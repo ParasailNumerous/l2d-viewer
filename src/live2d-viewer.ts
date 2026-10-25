@@ -46,10 +46,23 @@ interface TouchPoint {
 }
 
 async function syncLocale() {
-  const activeLang = navigator.languages.find(lang =>
-    (targetLocales as readonly string[]).includes(lang)
-  );
-  if (activeLang) await setLocale(activeLang);
+  const findTargetLocale = (language: string) => {
+    const normalizedLanguage = language.toLowerCase();
+    const exactLocale = targetLocales.find(
+      locale => locale.toLowerCase() === normalizedLanguage
+    );
+    if (exactLocale) return exactLocale;
+
+    const languageCode = normalizedLanguage.split("-")[0];
+    return targetLocales.find(
+      locale => locale.toLowerCase().split("-")[0] === languageCode
+    );
+  };
+
+  const activeLocale = navigator.languages
+    .map(findTargetLocale)
+    .find((locale): locale is (typeof targetLocales)[number] => locale !== undefined);
+  if (activeLocale) await setLocale(activeLocale);
 }
 
 window.addEventListener("languagechange", () => {
