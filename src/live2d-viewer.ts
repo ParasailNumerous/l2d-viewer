@@ -7,8 +7,8 @@ import { Live2DModel, Live2DPlugin, MotionPriority } from "untitled-pixi-live2d-
 import { configureLocalization, localized, msg } from '@lit/localize';
 import { sourceLocale, targetLocales } from './generated/locale-codes.js';
 
-import { preflightStyles } from "./styles/preflight-styles.js";
 import { live2DViewerStyles } from "./styles/live2d-viewer-styles.js";
+import { modernNormalizeStyles } from "./styles/modern-normalize-styles.js";
 import {
   clampScale,
   getExportModelPosition,
@@ -144,7 +144,7 @@ export class Live2DViewer extends LitElement {
     delegatesFocus: true,
   };
 
-  static override styles = [preflightStyles, live2DViewerStyles];
+  static override styles = [modernNormalizeStyles, live2DViewerStyles];
 
   override connectedCallback(): void {
     super.connectedCallback();
