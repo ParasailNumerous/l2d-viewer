@@ -1,6 +1,9 @@
-import { css } from 'lit';
+import { css, unsafeCSS } from 'lit';
+import stellarStyles from './stellar.module.css?raw';
 
 export const live2DViewerStyles = css`
+  ${unsafeCSS(stellarStyles)}
+
   :host {
     position: relative;
     display: block;
@@ -11,17 +14,17 @@ export const live2DViewerStyles = css`
     contain: content;
     container-type: inline-size;
 
-    --bg-color: oklch(0% 0 0);
-    --fg-color: oklch(100% 0 0);
-    --surface-color: oklch(70% 0 0);
-    --primary-color: oklch(0.62 0.12 199.54);
-    --primary-fg-color: oklch(1 0 0);
-    --secondary-color: oklch(0.4203 0.1014 262.52);
-    --secondary-fg-color: oklch(1 0 0);
+    --bg-color: var(--stellar-canvas);
+    --fg-color: var(--stellar-foreground);
+    --surface-color: var(--stellar-surface);
+    --primary-color: var(--stellar-primary);
+    --primary-fg-color: var(--stellar-on-primary);
+    --secondary-color: var(--stellar-secondary);
+    --secondary-fg-color: var(--stellar-on-secondary);
     --small-screen-sheet-height: clamp(40%, 150px, 600px);
     --space: 4px;
-    --hover-mix: 8%;
-    --active-mix: 16%;
+    --hover-mix: var(--stellar-hover-mix);
+    --active-mix: var(--stellar-active-mix);
 
     accent-color: var(--primary-color);
     color-scheme: dark;
@@ -81,7 +84,7 @@ export const live2DViewerStyles = css`
     border: 1px solid color-mix(in oklab, var(--fg-color) 50%, transparent);
     border-radius: 4px;
     min-width: 0;
-    min-height: calc(var(--space) * 8);
+    min-height: var(--stellar-min-touch-target);
     padding: 0 0.5rem;
     line-height: 1;
     text-align: start;
@@ -248,7 +251,7 @@ export const live2DViewerStyles = css`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-height: calc(var(--space) * 8);
+    min-height: var(--stellar-min-dense-touch-target);
     display: block;
     position: relative;
     &:focus-visible {
