@@ -51,33 +51,7 @@ export class StellarTileItem extends LitElement {
         text-align: center;
         cursor: pointer;
         touch-action: manipulation;
-      }
-
-      button:hover:not(:disabled) {
-        background: color-mix(
-          in oklab,
-          transparent,
-          currentColor var(--stellar-hover-mix)
-        );
-      }
-
-      button:active:not(:disabled) {
-        background: color-mix(
-          in oklab,
-          transparent,
-          currentColor var(--stellar-active-mix)
-        );
-      }
-
-      button:focus-visible,
-      :host(:focus-visible) {
-        outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
-        outline-offset: var(--stellar-focus-ring-offset);
-      }
-
-      button[aria-pressed="true"] {
-        background: var(--stellar-secondary);
-        color: var(--stellar-on-secondary);
+        -webkit-tap-highlight-color: transparent;
         &:hover:not(:disabled) {
           background: color-mix(
             in oklab,
@@ -85,6 +59,7 @@ export class StellarTileItem extends LitElement {
             currentColor var(--stellar-hover-mix)
           );
         }
+  
         &:active:not(:disabled) {
           background: color-mix(
             in oklab,
@@ -92,11 +67,36 @@ export class StellarTileItem extends LitElement {
             currentColor var(--stellar-active-mix)
           );
         }
-      }
-
-      button:disabled {
-        cursor: default;
-        opacity: 0.5;
+  
+        &:focus-visible,
+        :host(:focus-visible) {
+          outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
+          outline-offset: var(--stellar-focus-ring-offset);
+        }
+  
+        &[aria-pressed="true"] {
+          background: var(--stellar-secondary);
+          color: var(--stellar-on-secondary);
+          &:hover:not(:disabled) {
+            background: color-mix(
+              in oklab,
+              transparent,
+              currentColor var(--stellar-hover-mix)
+            );
+          }
+          &:active:not(:disabled) {
+            background: color-mix(
+              in oklab,
+              transparent,
+              currentColor var(--stellar-active-mix)
+            );
+          }
+        }
+  
+        &:disabled {
+          cursor: default;
+          opacity: 0.38;
+        }
       }
 
       .label {
