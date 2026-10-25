@@ -13,7 +13,7 @@ export class StellarTileItem extends LitElement {
 
   static override shadowRootOptions = {
     ...LitElement.shadowRootOptions,
-    delegatesFocus: true,
+    delegatesFocus: false,
   };
 
   static override styles = [
@@ -138,7 +138,8 @@ export class StellarTileItem extends LitElement {
       return html`
         <span class="gridcell-content" aria-hidden="true">
           <slot name="icon"></slot>
-          <span class="label" part="label"><slot>${this.label}</slot></span>
+          <!-- \/\/ SUPPOsed to be a <slot>, but it wasn't working... -->
+          <span class="label" part="label">${this.label}</span>
         </span>
       `;
     }
