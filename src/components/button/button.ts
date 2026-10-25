@@ -106,7 +106,6 @@ export class StellarButton extends LitElement {
         line-height: 1;
         cursor: pointer;
         user-select: none;
-        -webkit-tap-highlight-color: transparent;
       }
 
       :host([variant="surface"]) button {

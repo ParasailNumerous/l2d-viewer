@@ -51,7 +51,6 @@ export class StellarTileItem extends LitElement {
         text-align: center;
         cursor: pointer;
         touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
         &:hover:not(:disabled) {
           background: color-mix(
             in oklab,
