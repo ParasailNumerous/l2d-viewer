@@ -1302,10 +1302,10 @@ export class Live2DViewer extends LitElement {
             ${this.isFullscreen ? unsafeHTML(Minimize) : unsafeHTML(Maximize)
       }
           </stellar-icon-button>
-          <stellar-icon-button variant="base" label="${msg('Screenshot')}" class="elevation-1" part="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+          <stellar-icon-button variant="base" label="${msg('Screenshot')}" class="elevation-1" part="button" data-testid="screenshot-action" @click=${this.captureScreenshot} ?hidden=${this.currentModel === null}>
             ${unsafeHTML(ScanSquare)}
           </stellar-icon-button>
-          <stellar-button variant="base" class="elevation-1" part="button record-button" data-testid="record-action" @click=${this.toggleRecording}>
+          <stellar-button variant="base" class="elevation-1" part="button record-button" data-testid="record-action" @click=${this.toggleRecording} ?hidden=${this.currentModel === null}>
             ${unsafeHTML(Video)}
             ${this.isRecording ? msg('Stop', { desc: 'Small screen: stop recording action' }) : msg('Record', { desc: 'Small screen: start recording action' })} <kbd part="kbd">R</kbd>
           </stellar-button>
@@ -1376,10 +1376,10 @@ export class Live2DViewer extends LitElement {
               ${msg('Import')}
               <kbd part="kbd">I</kbd>
             </stellar-button>
-            <stellar-button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+            <stellar-button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot} ?disabled=${this.currentModel === null}>
               ${msg('Screenshot')}<kbd part="kbd">E</kbd>
             </stellar-button>
-            <stellar-button part="button record-button" data-testid="record-action" @click=${this.toggleRecording}>
+            <stellar-button part="button record-button" data-testid="record-action" @click=${this.toggleRecording} ?disabled=${this.currentModel === null}>
               ${this.isRecording ? msg('Stop recording') : msg('Start recording')}<kbd part="kbd">R</kbd>
             </stellar-button>
           </div>
