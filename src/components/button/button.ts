@@ -108,6 +108,7 @@ export class StellarButton extends LitElement {
         line-height: 1;
         cursor: pointer;
         user-select: none;
+        transition: border-radius 75ms steps(6, jump-none);
         &:focus-visible {
           outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
           outline-offset: var(--stellar-focus-ring-offset);
@@ -149,7 +150,8 @@ export class StellarButton extends LitElement {
         --stellar-button-background: var(--stellar-secondary);
         --stellar-button-content: var(--stellar-on-secondary);
         button {
-          border-radius: var(--stellar-radius-full);
+          /* 1/2 height */
+          border-radius: calc(var(--stellar-min-touch-target) / 2);
         }
       }
 
