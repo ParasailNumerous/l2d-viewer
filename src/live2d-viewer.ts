@@ -1316,10 +1316,10 @@ export class Live2DViewer extends LitElement {
             ${this.isFullscreen ? html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shrink-icon lucide-shrink"><path d="m15 15 6 6m-6-6v4.8m0-4.8h4.8"/><path d="M9 19.8V15m0 0H4.2M9 15l-6 6"/><path d="M15 4.2V9m0 0h4.8M15 9l6-6"/><path d="M9 4.2V9m0 0H4.2M9 9 3 3"/></svg>` : html`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-expand-icon lucide-expand"><path d="m15 15 6 6"/><path d="m15 9 6-6"/><path d="M21 16v5h-5"/><path d="M21 8V3h-5"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M3 8V3h5"/><path d="M9 9 3 3"/></svg>`}
             <kbd>F</kbd>
           </button>
-          <button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+          <button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot} ?hidden=${this.currentModel === null}>
             <slot name="screenshot-label">${msg('Screenshot')} <kbd part="kbd">E</kbd></slot>
           </button>
-          <button part="button record-button" data-testid="record-action" @click=${this.toggleRecording}>
+          <button part="button record-button" data-testid="record-action" @click=${this.toggleRecording} ?hidden=${this.currentModel === null}>
             <slot name="record-label">${this.isRecording ? msg('Stop', { desc: 'Small screen: stop recording action' }) : msg('Record', { desc: 'Small screen: start recording action' })} <kbd part="kbd">R</kbd></slot>
           </button>
           <slot name="small-screen-actions-end"></slot>
@@ -1398,11 +1398,11 @@ export class Live2DViewer extends LitElement {
               <slot name="import-label-desktop">${msg('Import')}
               <kbd part="kbd">I</kbd></slot>
             </button>
-            <button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot}>
+            <button part="button" data-testid="screenshot-action" @click=${this.captureScreenshot} ?disabled=${this.currentModel === null}>
               <slot name="screenshot-label-desktop">${msg('Screenshot')}
               <kbd part="kbd">E</kbd></slot>
             </button>
-            <button part="button record-button" data-testid="record-action" @click=${this.toggleRecording}>
+            <button part="button record-button" data-testid="record-action" @click=${this.toggleRecording} ?disabled=${this.currentModel === null}>
               <slot name="record-label-desktop">${this.isRecording ? msg('Stop recording') : msg('Start recording')}
               <kbd part="kbd">R</kbd></slot>
             </button>
