@@ -1416,7 +1416,7 @@ ${this.exportResolution === "custom"
             this.fitModel();
           }}
         >
-          ${unsafeHTML(MoveHorizontal)}
+          <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(MoveHorizontal)}</span>
         </stellar-field>
         <stellar-field
           type="number"
@@ -1430,7 +1430,7 @@ ${this.exportResolution === "custom"
             this.fitModel();
           }}
         >
-          ${unsafeHTML(MoveVertical)}
+          <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(MoveVertical)}</span>
         </stellar-field>
       </div>
     `
