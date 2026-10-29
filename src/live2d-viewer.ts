@@ -1405,41 +1405,36 @@ export class Live2DViewer extends LitElement {
               <stellar-button value="custom">${msg('Custom', { desc: 'Export resolution dropdown option' })}</stellar-button>
             </stellar-button-group>
           </div>
-${this.exportResolution === "custom"
-        ? html`
-      <div class="grid-2 grid-standard">
-        <stellar-field
-          type="number"
-          min="100"
-          aria-label=${msg('Custom export width', { desc: 'Input field label' })}
-          title=${msg('Custom export width', { desc: 'Input field label' })}
-          .value=${this.customWidth.toString()}
-          @input=${(e: Event) => {
-            this.customWidth =
-              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
-            this.fitModel();
-          }}
-        >
-          <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(MoveHorizontal)}</span>
-        </stellar-field>
-        <stellar-field
-          type="number"
-          min="100"
-          aria-label=${msg('Custom export height', { desc: 'Input field label' })}
-          title=${msg('Custom export height', { desc: 'Input field label' })}
-          .value=${this.customHeight.toString()}
-          @input=${(e: Event) => {
-            this.customHeight =
-              Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
-            this.fitModel();
-          }}
-        >
-          <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(MoveVertical)}</span>
-        </stellar-field>
-      </div>
-    `
-        : ""
-      }
+          <div class="grid-2 grid-standard" ?hidden=${this.exportResolution !== 'custom'}>
+            <stellar-field
+              type="number"
+              min="100"
+              aria-label=${msg('Custom export width', { desc: 'Input field label' })}
+              title=${msg('Custom export width', { desc: 'Input field label' })}
+              .value=${this.customWidth.toString()}
+              @input=${(e: Event) => {
+                this.customWidth =
+                  Number.parseInt((e.target as HTMLInputElement).value, 10) || 1920;
+                this.fitModel();
+              }}
+            >
+              <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(MoveHorizontal)}</span>
+            </stellar-field>
+            <stellar-field
+              type="number"
+              min="100"
+              aria-label=${msg('Custom export height', { desc: 'Input field label' })}
+              title=${msg('Custom export height', { desc: 'Input field label' })}
+              .value=${this.customHeight.toString()}
+              @input=${(e: Event) => {
+                this.customHeight =
+                  Number.parseInt((e.target as HTMLInputElement).value, 10) || 1080;
+                this.fitModel();
+              }}
+            >
+              <span aria-hidden="true" slot="start" style="height: 24px">${unsafeHTML(MoveVertical)}</span>
+            </stellar-field>
+          </div>
 
 <div class="stack" part="stack camera-stack">
   <span class="section-label section-label--spread" part="section-label">
