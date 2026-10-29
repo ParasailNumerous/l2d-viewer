@@ -103,10 +103,24 @@ export class StellarButton extends LitElement {
         line-height: 1;
         cursor: pointer;
         user-select: none;
-        transition: border-radius 75ms steps(6, jump-none);
+        position: relative;
+        transition: border-radius 75ms steps(6, jump-none), padding 75ms steps(6, jump-none);
         &:focus-visible {
           outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
           outline-offset: var(--stellar-focus-ring-offset);
+        }
+
+        @media (pointer: coarse) {
+          min-block-size: min(40px, var(--stellar-min-touch-target));
+          &::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            inline-size: 100%;
+            block-size: var(--stellar-min-touch-target);
+            transform: translate(-50%, -50%);
+          }
         }
   
         &:disabled {
@@ -147,6 +161,8 @@ export class StellarButton extends LitElement {
         button {
           /* 1/2 height */
           border-radius: calc(var(--stellar-min-touch-target) / 2);
+          /* Increased horizontal padding */
+          padding: 0 16px;
         }
       }
 
