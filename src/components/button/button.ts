@@ -10,14 +10,6 @@ export type StellarButtonVariant =
   | "selected"
   | "text";
 
-const buttonVariants: readonly StellarButtonVariant[] = [
-  "surface",
-  "base",
-  "primary",
-  "selected",
-  "text",
-];
-
 @customElement("stellar-button")
 export class StellarButton extends LitElement {
   @property({ type: String, reflect: true })
@@ -76,6 +68,9 @@ export class StellarButton extends LitElement {
 
   @query("button")
   private button!: HTMLButtonElement;
+
+  private buttonTabIndex = 0;
+  private radioChecked?: boolean;
 
   static override shadowRootOptions = {
     ...LitElement.shadowRootOptions,
@@ -163,8 +158,7 @@ export class StellarButton extends LitElement {
   ];
 
   override render() {
-    const variant = buttonVariants.includes(this.variant) ? this.variant : "surface";
-    const isToggle = this.toggle || this.selected || variant === "selected";
+    const isRadio = this.radioChecked !== undefined;
 
     return html`
       <button
@@ -180,10 +174,13 @@ export class StellarButton extends LitElement {
         formenctype=${ifDefined(this.formEncType)}
         formmethod=${ifDefined(this.formMethod)}
         formtarget=${ifDefined(this.formTarget)}
+        role=${isRadio ? "radio" : nothing}
+        aria-checked=${isRadio ? String(this.radioChecked) : nothing}
+        tabindex=${this.buttonTabIndex}
         aria-label=${this.ariaLabel.trim() || nothing}
         aria-labelledby=${this.ariaLabelledBy.trim() || nothing}
         aria-describedby=${this.ariaDescribedBy.trim() || nothing}
-        aria-pressed=${isToggle ? String(this.selected) : nothing}
+        aria-pressed=${this.toggle ? String(this.selected) : nothing}
         title=${this.title || nothing}
         @click=${this.handleClick}
       >
@@ -198,6 +195,17 @@ export class StellarButton extends LitElement {
 
   override blur(): void {
     this.button?.blur();
+  }
+  // Marks as radio for accessibility
+  setRadio(checked: boolean): void {
+    this.radioChecked = checked;
+    this.requestUpdate();
+  }
+
+  // For roving tabindex
+  setTabIndex(tabIndex: number): void {
+    this.buttonTabIndex = tabIndex;
+    if (this.button) this.button.tabIndex = tabIndex;
   }
 
   private handleClick = (): void => {
