@@ -14,6 +14,8 @@ import { modernNormalizeStyles } from "./styles/modern-normalize-styles.js";
 
 import "./components/icon-button/icon-button.js";
 import "./components/button/button.js";
+import "./components/button-group/button-group.js";
+import type { ButtonGroupChangeDetail } from "./components/button-group/button-group.js";
 import "./components/field/field.js";
 import "./components/playback-bar/playback-bar.js";
 import "./components/tabs/tabs.js";
@@ -1383,24 +1385,26 @@ export class Live2DViewer extends LitElement {
               ${this.isRecording ? msg('Stop recording') : msg('Start recording')}<kbd part="kbd">R</kbd>
             </stellar-button>
           </div>
-          <div class="cluster cluster--spread grid-span" part="cluster">
-  <label for="exportResolutionSelect" part="label">${msg('Export resolution')}</label>
-  <select
-    id="exportResolutionSelect"
-    part="select"
-    .value=${this.exportResolution}
-    @change=${(e: Event) => {
-        this.exportResolution = (e.target as HTMLSelectElement).value;
-        this.fitModel();
-      }}
-  >
-    <option value="viewport">${msg('Viewport', { desc: 'Export resolution dropdown option' })}</option>
-    <option value="720p">720p</option>
-    <option value="1080p">1080p</option>
-    <option value="4k">4K</option>
-    <option value="custom">${msg('Custom', { desc: 'Export resolution dropdown option' })}</option>
-  </select>
-</div>
+          <div class="stack" part="stack">
+            <span class="section-label" part="section-label" id="exportResolutionLabel">${msg('Export resolution')}</span>
+            <stellar-button-group
+              part="button-group"
+              data-testid="export-resolution-group"
+              aria-labelledby="exportResolutionLabel"
+              selected-value=${this.exportResolution}
+              @change=${(e: CustomEvent<ButtonGroupChangeDetail>) => {
+                this.exportResolution = e.detail.value;
+                this.fitModel();
+              }}
+            >
+              <stellar-button value="viewport">${msg('Viewport', { desc: 'Export resolution dropdown option' })}</stellar-button>
+              <stellar-button value="720p">720p</stellar-button>
+              <stellar-button value="1080p">1080p</stellar-button>
+              <stellar-button value="4k">4K</stellar-button>
+              <span data-spacer aria-hidden="true"></span>
+              <stellar-button value="custom">${msg('Custom', { desc: 'Export resolution dropdown option' })}</stellar-button>
+            </stellar-button-group>
+          </div>
 ${this.exportResolution === "custom"
         ? html`
       <div class="grid-2 grid-standard">
