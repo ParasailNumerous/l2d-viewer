@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { gotoViewer, loadFixture, fixturePath } from './helpers';
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { unzipSync, zipSync, strToU8 } from 'fflate';
 
 import type { Live2DViewer } from '../../src/live2d-viewer';
 
@@ -58,5 +61,54 @@ test.describe('Core logic', () => {
     const viewer = page.getByTestId('viewer');
     await viewer.evaluate((el: Live2DViewer) => el.modelPath = 'https://cdn.jsdelivr.net/gh/ParasailNumerous/StellaSoraLive2Ds@unzipped/assets/Nazuna%2003/live2d/base/15603_base.model3.json');
     await expect(page.getByTestId('status')).toContainText(/Loaded/, { timeout: 15000 });
+  });
+
+  // THIS TEST IS A MESS TwT
+  test('fixture exposes Base/Talent/Full groups', async ({ page }) => {
+    const zip = unzipSync(new Uint8Array(fs.readFileSync(fixturePath)));
+    const modelKey = Object.keys(zip).find((k) => k.endsWith('.model3.json'))!;
+    const baseDir = modelKey.substring(0, modelKey.lastIndexOf('/') + 1);
+    const rootPrefix = baseDir.split('live2d/')[0];
+    const newZip: Record<string, Uint8Array> = {};
+
+    // check each variant
+    for (const variant of ['base', 'talent', 'full']) {
+      const groupName = variant.charAt(0).toUpperCase() + variant.slice(1);
+      for (const [p, data] of Object.entries(zip)) {
+        if (!p.startsWith(baseDir)) continue;
+        const rel = p.substring(baseDir.length);
+        let buf = data;
+        if (rel.endsWith('.model3.json')) {
+          const json = JSON.parse(new TextDecoder().decode(data));
+          const sourceMotions = json.FileReferences.Motions;
+          const motions = sourceMotions[Object.keys(sourceMotions)[0]];
+          // Keep the Talent variant's motion list distinct so the test can observe the switch.
+          json.FileReferences.Motions = {
+            [groupName]: variant === 'talent' ? motions.slice(0, 1) : motions,
+          };
+          buf = strToU8(JSON.stringify(json));
+        }
+        const targetRel = rel.replace('_base.model3.json', `_${variant}.model3.json`);
+        newZip[`${rootPrefix}live2d/${variant}/${targetRel}`] = buf;
+      }
+    }
+
+    const tmpFile = path.join(os.tmpdir(), `l2d-multi-variant-${process.pid}.zip`);
+    fs.writeFileSync(tmpFile, Buffer.from(zipSync(newZip)));
+
+    await gotoViewer(page);
+    const viewer = page.getByTestId('viewer');
+    await page.getByTestId('zip-input').setInputFiles(tmpFile);
+    await expect(page.getByTestId('status')).toContainText(/Loaded/, { timeout: 15000 });
+    const groups = await viewer.evaluate((el: Live2DViewer) => el.motionGroups);
+    expect(groups).toEqual(['Base', 'Talent', 'Full']);
+
+    const motionsBefore = await viewer.evaluate((el: Live2DViewer) => el.motions.length);
+    await viewer.getByTestId('motion-group-collection').getByTestId('tile-btn').nth(1).click();
+    await expect(page.getByTestId('status')).toContainText(/Loaded/, { timeout: 15000 });
+    const selectedGroup = await viewer.evaluate((el: Live2DViewer) => el.selectedGroup);
+    expect(selectedGroup).toBe('Talent');
+    const motionsAfter = await viewer.evaluate((el: Live2DViewer) => el.motions.length);
+    expect(motionsAfter).not.toBe(motionsBefore);
   });
 });

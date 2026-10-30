@@ -99,6 +99,7 @@ export class Live2DViewer extends LitElement {
   private app: Application | null = null;
   private currentModel: InstanceType<typeof Live2DModel> | null = null;
   private currentModelJson: Record<string, unknown> & { FileReferences?: { Motions?: Record<string, { File?: string }[]>; Expressions?: { Name?: string; File?: string }[] } } | null = null;
+  private modelVariants: { name: string; files: File[] }[] = [];
   private lastModelSource: string | File[] | null = null;
   private overlayGraphics: Graphics | null = null;
   private mediaRecorder: MediaRecorder | null = null;
@@ -777,6 +778,10 @@ export class Live2DViewer extends LitElement {
     if (typeof source === "string" && source !== this.modelPath) {
       this.modelPath = source;
     }
+    if (typeof source === "string") {
+      // Reset variants when model (re)loads
+      this.modelVariants = [];
+    }
     const myGeneration = ++this.loadGeneration;
     if (this.loadAbortController) this.loadAbortController.abort();
     const controller = new AbortController();
@@ -899,6 +904,16 @@ export class Live2DViewer extends LitElement {
       value: String(idx),
     }));
     this.selectedExpression = this.expressions[0]?.value || "";
+
+    //  keep all variant groups selectable
+    if (this.modelVariants.length > 1) {
+      const names = this.modelVariants.map((v) => v.name);
+      if (!names.includes(this.selectedGroup)) {
+        this.selectedGroup = names[0] || this.selectedGroup;
+      }
+      this.motionGroups = names;
+      this.updateMotionList();
+    }
   }
 
   private updateMotionList(): void {
@@ -968,28 +983,76 @@ export class Live2DViewer extends LitElement {
       const zip = unzipSync(data);
 
       // { 'nested/directory/structure.txt': Uint8Array(2) [97, 97] }
-      const modelKey = Object.keys(zip).find((k) => k.endsWith(".model3.json") || k.endsWith(".model.json"))
-      if (!modelKey)
+      const modelKeys = Object.keys(zip).filter((k) => k.endsWith(".model3.json") || k.endsWith(".model.json"))
+      if (!modelKeys.length)
         throw new Error("No .model3.json or .model.json found in ZIP!");
 
-      const lastSlashIndex = modelKey.lastIndexOf("/");
-      const baseDir = lastSlashIndex >= 0 ? modelKey.substring(0, lastSlashIndex + 1) : "";
-      const normalizedFiles: File[] = [];
+      const makeNormalizedFiles = (baseDir: string): File[] => {
+        const normalizedFiles: File[] = [];
+        for (const [path, entry] of Object.entries(zip)) {
+          if (!path.startsWith(baseDir)) continue;
+          if (entry.length === 0) continue;
+          const relativePath = path.substring(baseDir.length);
+          const fileObj = new File([entry], relativePath);
+          Object.defineProperty(fileObj, "webkitRelativePath", {
+            value: relativePath,
+            writable: false
+          })
+          normalizedFiles.push(fileObj);
+        }
+        return normalizedFiles;
+      };
 
-      for (const [path, entry] of Object.entries(zip)) {
-        if (!path.startsWith(baseDir)) continue;
-        if (entry.length === 0) continue;
-        const relativePath = path.substring(baseDir.length);
-        const fileObj = new File([entry], relativePath);
-        // stub for other code
-        Object.defineProperty(fileObj, "webkitRelativePath", {
-          value: relativePath,
-          writable: false
-        })
-        normalizedFiles.push(fileObj);
+      // Use old code path for one variant models
+      // Maybe refactor into one code path later?
+      if (modelKeys.length === 1) {
+        const modelKey = modelKeys[0];
+        const lastSlashIndex = modelKey.lastIndexOf("/");
+        const baseDir = lastSlashIndex >= 0 ? modelKey.substring(0, lastSlashIndex + 1) : "";
+        this.modelVariants = [];
+        await this.loadModelSource(makeNormalizedFiles(baseDir));
+        return;
       }
 
-      await this.loadModelSource(normalizedFiles);
+      // For >1 variants, parse each each model3.json as a submodel
+      const seenDirs = new Set<string>();
+      const variants: { name: string; files: File[] }[] = [];
+      for (const modelKey of modelKeys) {
+        const lastSlashIndex = modelKey.lastIndexOf("/");
+        const baseDir = lastSlashIndex >= 0 ? modelKey.substring(0, lastSlashIndex + 1) : "";
+        if (seenDirs.has(baseDir)) continue;
+        seenDirs.add(baseDir);
+
+        const files = makeNormalizedFiles(baseDir);
+        const modelFile = files.find((f) => f.name.endsWith(".model3.json") || f.name.endsWith(".model.json"));
+        let groupName: string | null = null;
+        if (modelFile) {
+          try {
+            const json = JSON.parse(await modelFile.text());
+            const motions = json?.FileReferences?.Motions;
+            if (motions && typeof motions === "object") {
+              const keys = Object.keys(motions);
+              if (keys.length) groupName = keys[0];
+            }
+          } catch { }
+        }
+        if (!groupName) {
+          const dirName = baseDir.replace(/\/$/, "").split("/").pop() || "";
+          groupName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
+        }
+        variants.push({ name: groupName, files });
+      }
+
+      const order: Record<string, number> = { base: 0, talent: 1, full: 2 };
+      variants.sort((a, b) => {
+        const oa = order[a.name.toLowerCase()] ?? 99;
+        const ob = order[b.name.toLowerCase()] ?? 99;
+        if (oa !== ob) return oa - ob;
+        return a.name.localeCompare(b.name);
+      });
+
+      this.modelVariants = variants;
+      await this.loadModelSource(variants[0]?.files ?? []);
     } catch (err: any) {
       this.statusMsg = `ZIP load failed: ${err.message || err}`;
     }
@@ -1271,6 +1334,14 @@ export class Live2DViewer extends LitElement {
           this.motionGroups,
           this.selectedGroup,
           (g: string) => {
+            if (this.modelVariants.length > 1) {
+              const variant = this.modelVariants.find((v) => v.name === g);
+              if (variant) {
+                this.selectedGroup = g;
+                void this.loadModelSource(variant.files);
+                return;
+              }
+            }
             this.selectedGroup = g;
             this.updateMotionList();
             this.playMotion();
