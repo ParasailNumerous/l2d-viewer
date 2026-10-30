@@ -30,6 +30,7 @@
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.build.json",
     "build:pages": "vite build --config vite.pages.config.ts",
+    "test:unit": "vitest run tests/unit",
     "preview": "vite preview",
     "prepublishOnly": "pnpm run build"
   },
@@ -45,7 +46,8 @@
     "@playwright/test": "^1.62.1",
     "@types/node": "^26.2.0",
     "typescript": "~7.0.2",
-    "vite": "^8.2.0"
+    "vite": "^8.2.0",
+    "vitest": "^5.0.5"
   },
   "devEngines": {
     "packageManager": {

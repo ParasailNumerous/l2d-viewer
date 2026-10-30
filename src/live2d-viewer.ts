@@ -9,6 +9,12 @@ import { sourceLocale, targetLocales } from './generated/locale-codes.js';
 
 import { preflightStyles } from "./styles/preflight-styles.js";
 import { live2DViewerStyles } from "./styles/live2d-viewer-styles.js";
+import {
+  clampScale,
+  getFramingBounds,
+  getModelScale,
+  zoomAroundPoint,
+} from "./viewport/viewport-geometry.js";
 
 export const { getLocale, setLocale } = configureLocalization({
   sourceLocale,
@@ -420,17 +426,21 @@ export class Live2DViewer extends LitElement {
         else if (we.deltaMode === 2) deltaY *= 400;
 
         const zoomSpeed = 0.001;
-        let newScale = oldScale * Math.exp(-deltaY * zoomSpeed);
-        newScale = Math.min(40, Math.max(0.1, newScale));
-        newScale = Number(newScale.toFixed(3));
+        const newScale = clampScale(oldScale * Math.exp(-deltaY * zoomSpeed));
         if (newScale === oldScale) return;
 
-        const ratio = newScale / oldScale;
         const cx = frame.x + frame.width / 2 + this.panX;
         const cy = frame.y + frame.height / 2 + this.panY;
-        this.panX = Math.round(this.panX + (cursorX - cx) * (1 - ratio));
-        this.panY = Math.round(this.panY + (cursorY - cy) * (1 - ratio));
-        this.scale = newScale;
+        const nextView = zoomAroundPoint(
+          oldScale,
+          { x: this.panX, y: this.panY },
+          { x: cursorX, y: cursorY },
+          { x: cx, y: cy },
+          newScale,
+        );
+        this.panX = nextView.pan.x;
+        this.panY = nextView.pan.y;
+        this.scale = nextView.scale;
         this.updateView();
       },
       { passive: false, signal: this.abortController.signal }
@@ -564,21 +574,10 @@ export class Live2DViewer extends LitElement {
     if (this.exportResolution === "viewport")
       return { x: 0, y: 0, width: vw, height: vh };
 
-    const target = this.getExportDimensions();
-    const targetAR = target.width / target.height,
-      viewportAR = vw / vh;
-    let frameW = vw,
-      frameH = vh;
-
-    if (viewportAR > targetAR) frameW = vh * targetAR;
-    else frameH = vw / targetAR;
-
-    return {
-      x: (vw - frameW) / 2,
-      y: (vh - frameH) / 2,
-      width: frameW,
-      height: frameH,
-    };
+    return getFramingBounds(
+      { width: vw, height: vh },
+      this.getExportDimensions(),
+    );
   }
 
   private updateFramingOverlay(): void {
@@ -646,9 +645,7 @@ export class Live2DViewer extends LitElement {
     );
 
     const frame = this.getFrameBounds();
-    const scaleRatio =
-      Math.min(frame.width / bounds.width, frame.height / bounds.height) *
-      this.scale;
+    const scaleRatio = getModelScale(frame, bounds, this.scale);
 
     this.currentModel.scale.set(scaleRatio);
     this.currentModel.position.set(
@@ -670,9 +667,7 @@ export class Live2DViewer extends LitElement {
       bounds.y + bounds.height / 2
     );
 
-    const baseScaleRatio =
-      Math.min(frame.width / bounds.width, frame.height / bounds.height) *
-      this.scale;
+    const baseScaleRatio = getModelScale(frame, bounds, this.scale);
     this.currentModel.scale.set(baseScaleRatio * scaleMultiplier);
     this.currentModel.position.set(
       exportW / 2 + this.panX * scaleMultiplier,
