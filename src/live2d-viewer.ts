@@ -11,9 +11,12 @@ import { preflightStyles } from "./styles/preflight-styles.js";
 import { live2DViewerStyles } from "./styles/live2d-viewer-styles.js";
 import {
   clampScale,
+  getExportModelPosition,
   getFramingBounds,
+  getModelPosition,
   getModelScale,
-  zoomAroundPoint,
+  getPanStepSpeed,
+  zoomViewAroundPoint,
 } from "./viewport/viewport-geometry.js";
 import {
   getPanFromPointer,
@@ -105,7 +108,13 @@ export class Live2DViewer extends LitElement {
   @property({ type: Boolean }) isDragging: boolean = false;
   @property({ type: Boolean }) isRecording: boolean = false;
   @property({ type: Boolean, reflect: true }) isFullscreen: boolean = false;
+  /**
+   * Horizontal pan in view units, scaled by the model scale when rendered.
+   */
   @property({ type: Number }) panX: number = 0;
+  /**
+   * Vertical pan in view units, scaled by the model scale when rendered.
+   */
   @property({ type: Number }) panY: number = 0;
 
   private app: Application | null = null;
@@ -323,20 +332,29 @@ export class Live2DViewer extends LitElement {
 
       if (this.touchPointers.size === 2) {
         const pts = Array.from(this.touchPointers.values());
-        if (this.initialPinch) {
+        if (this.initialPinch && this.currentModel) {
           const frame = this.getFrameBounds();
-          const nextPinch = getPinchTransform(
-            this.initialPinch,
-            pts[0],
-            pts[1],
-            {
-              x: frame.x + frame.width / 2,
-              y: frame.y + frame.height / 2,
-            },
+          const bounds = this.currentModel.getLocalBounds();
+          const modelScale = getModelScale(
+            frame,
+            bounds,
+            this.initialPinch.scale,
           );
-          this.scale = nextPinch.scale;
-          this.panX = nextPinch.pan.x;
-          this.panY = nextPinch.pan.y;
+          if (Number.isFinite(modelScale) && modelScale > 0) {
+            const nextPinch = getPinchTransform(
+              this.initialPinch,
+              pts[0],
+              pts[1],
+              {
+                x: frame.x + frame.width / 2,
+                y: frame.y + frame.height / 2,
+              },
+              modelScale,
+            );
+            this.scale = nextPinch.scale;
+            this.panX = nextPinch.pan.x;
+            this.panY = nextPinch.pan.y;
+          }
         }
         this.updateView();
         return;
@@ -347,6 +365,7 @@ export class Live2DViewer extends LitElement {
         { x: initialPanX, y: initialPanY },
         { x: startX, y: startY },
         { x: pe.clientX, y: pe.clientY },
+        this.getModelScaleValue(),
       );
       this.panX = nextPan.x;
       this.panY = nextPan.y;
@@ -395,6 +414,7 @@ export class Live2DViewer extends LitElement {
         const cursorY = we.clientY - rect.top;
         const frame = this.getFrameBounds();
         const oldScale = this.scale;
+        const modelScale = this.getModelScaleValue();
 
         let deltaY = we.deltaY;
         if (we.deltaMode === 1) deltaY *= 16;
@@ -404,13 +424,15 @@ export class Live2DViewer extends LitElement {
         const newScale = clampScale(oldScale * Math.exp(-deltaY * zoomSpeed));
         if (newScale === oldScale) return;
 
-        const cx = frame.x + frame.width / 2 + this.panX;
-        const cy = frame.y + frame.height / 2 + this.panY;
-        const nextView = zoomAroundPoint(
+        const nextView = zoomViewAroundPoint(
           oldScale,
           { x: this.panX, y: this.panY },
           { x: cursorX, y: cursorY },
-          { x: cx, y: cy },
+          {
+            x: frame.x + frame.width / 2,
+            y: frame.y + frame.height / 2,
+          },
+          modelScale,
           newScale,
         );
         this.panX = nextView.pan.x;
@@ -555,6 +577,12 @@ export class Live2DViewer extends LitElement {
     );
   }
 
+  private getModelScaleValue(): number {
+    if (!this.currentModel) return 0;
+    const bounds = this.currentModel.getLocalBounds();
+    return getModelScale(this.getFrameBounds(), bounds, this.scale);
+  }
+
   private updateFramingOverlay(): void {
     if (!this.app) return;
     if (!this.overlayGraphics) {
@@ -623,10 +651,12 @@ export class Live2DViewer extends LitElement {
     const scaleRatio = getModelScale(frame, bounds, this.scale);
 
     this.currentModel.scale.set(scaleRatio);
-    this.currentModel.position.set(
-      frame.x + frame.width / 2 + this.panX,
-      frame.y + frame.height / 2 + this.panY
+    const position = getModelPosition(
+      frame,
+      { x: this.panX, y: this.panY },
+      scaleRatio,
     );
+    this.currentModel.position.set(position.x, position.y);
     this.updateFramingOverlay();
   }
 
@@ -644,10 +674,13 @@ export class Live2DViewer extends LitElement {
 
     const baseScaleRatio = getModelScale(frame, bounds, this.scale);
     this.currentModel.scale.set(baseScaleRatio * scaleMultiplier);
-    this.currentModel.position.set(
-      exportW / 2 + this.panX * scaleMultiplier,
-      exportH / 2 + this.panY * scaleMultiplier
+    const position = getExportModelPosition(
+      { width: exportW, height: exportH },
+      { x: this.panX, y: this.panY },
+      baseScaleRatio,
+      scaleMultiplier,
     );
+    this.currentModel.position.set(position.x, position.y);
   }
 
   async captureScreenshot(): Promise<void> {
@@ -1193,7 +1226,7 @@ export class Live2DViewer extends LitElement {
 
     // Scale by deltaTime: base speed is per 60fps frame (16.6ms)
     const timeScale = dt / (1000 / 60);
-    const panSpeed = 10 * timeScale;
+    const panSpeed = getPanStepSpeed(10 * timeScale, this.getModelScaleValue());
     const zoomSpeed = 0.05 * timeScale;
     const oldScale = this.scale;
     let newScale = oldScale * Math.exp(-deltaZ * zoomSpeed);

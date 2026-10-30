@@ -10,6 +10,11 @@ export interface ViewportSize {
   height: number;
 }
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export function clampScale(scale: number): number {
   return Number(Math.min(40, Math.max(0.1, scale)).toFixed(3));
 }
@@ -37,22 +42,69 @@ export function getFramingBounds(
   };
 }
 
-export function zoomAroundPoint(
+/**
+ * Zooms around a screen point while pan is stored in view units.
+ * The rendered model origin is `frameCenter + pan * modelScale`.
+ */
+export function zoomViewAroundPoint(
   scale: number,
-  pan: { x: number; y: number },
-  point: { x: number; y: number },
-  center: { x: number; y: number },
+  pan: Point,
+  point: Point,
+  frameCenter: Point,
+  modelScale: number,
   nextScale: number,
-): { scale: number; pan: { x: number; y: number } } {
+): { scale: number; pan: Point } {
   const clampedScale = clampScale(nextScale);
   const ratio = clampedScale / scale;
+  const nextModelScale = modelScale * ratio;
+
+  if (
+    !Number.isFinite(modelScale) ||
+    modelScale <= 0 ||
+    !Number.isFinite(nextModelScale) ||
+    nextModelScale <= 0
+  ) {
+    return { scale: clampedScale, pan };
+  }
 
   return {
     scale: clampedScale,
     pan: {
-      x: Math.round(pan.x + (point.x - center.x) * (1 - ratio)),
-      y: Math.round(pan.y + (point.y - center.y) * (1 - ratio)),
+      x: Math.round(
+        pan.x + ((point.x - frameCenter.x) * (1 - ratio)) / nextModelScale,
+      ),
+      y: Math.round(
+        pan.y + ((point.y - frameCenter.y) * (1 - ratio)) / nextModelScale,
+      ),
     },
+  };
+}
+
+export function getModelPosition(
+  frame: FrameBounds,
+  pan: Point,
+  modelScale: number,
+): Point {
+  return {
+    x: frame.x + frame.width / 2 + pan.x * modelScale,
+    y: frame.y + frame.height / 2 + pan.y * modelScale,
+  };
+}
+
+export function getPanStepSpeed(baseSpeed: number, modelScale: number): number {
+  if (!Number.isFinite(modelScale) || modelScale <= 0) return 0;
+  return Math.max(baseSpeed / modelScale, 1);
+}
+
+export function getExportModelPosition(
+  exportSize: ViewportSize,
+  pan: Point,
+  modelScale: number,
+  scaleMultiplier: number,
+): Point {
+  return {
+    x: exportSize.width / 2 + pan.x * modelScale * scaleMultiplier,
+    y: exportSize.height / 2 + pan.y * modelScale * scaleMultiplier,
   };
 }
 
