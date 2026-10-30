@@ -1,11 +1,12 @@
 import { LitElement, css, html } from "lit";
-import { property } from "lit/decorators.js";
+import { customElement, property } from "lit/decorators.js";
 import { modernNormalizeStyles } from "../../styles/modern-normalize-styles.js";
 
 let nextTabId = 0;
 
 export type TabActivation = "automatic" | "manual";
 
+@customElement("stellar-tab")
 export class StellarTab extends LitElement {
   @property({ type: String }) label = "";
   @property({ type: String }) value = "";
@@ -23,26 +24,24 @@ export class StellarTab extends LitElement {
 
       button {
         min-block-size: var(--stellar-min-touch-target);
-        padding: 0 10px;
-        border-radius: var(--stellar-radius-base);
+        max-block-size: 72px;
+        padding: 0;
         background: transparent;
         color: inherit;
         cursor: pointer;
-      }
-
-      button[aria-selected="true"] {
-        background: var(--stellar-secondary);
-        color: var(--stellar-on-secondary);
-      }
-
-      button:disabled {
-        cursor: not-allowed;
-        opacity: 0.5;
-      }
-
-      button:focus-visible {
-        outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
-        outline-offset: var(--stellar-focus-ring-offset);
+        &[aria-selected="true"] {
+          background: linear-gradient(180deg, transparent 25%, var(--stellar-primary) 100%);
+        }
+  
+        &:disabled {
+          cursor: default;
+          opacity: 0.5;
+        }
+  
+        &:focus-visible {
+          outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
+          outline-offset: var(--stellar-focus-ring-offset);
+        }
       }
 
       :host(:focus-visible) {
@@ -121,8 +120,4 @@ export class StellarTab extends LitElement {
       }),
     );
   };
-}
-
-if (typeof customElements !== "undefined" && !customElements.get("stellar-tab")) {
-  customElements.define("stellar-tab", StellarTab);
 }

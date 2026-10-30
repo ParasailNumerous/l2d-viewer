@@ -1,11 +1,12 @@
 import { LitElement, css, html } from "lit";
-import { property, query, state } from "lit/decorators.js";
+import { customElement, property, query, state } from "lit/decorators.js";
 import { modernNormalizeStyles } from "../../styles/modern-normalize-styles.js";
 import { StellarTab } from "./tab.js";
 
 export type TabsOrientation = "horizontal" | "vertical";
 export type TabsActivation = "automatic" | "manual";
 
+@customElement("stellar-tabs")
 export class StellarTabs extends LitElement {
   @property({ type: String, reflect: true }) orientation: TabsOrientation = "horizontal";
   @property({ type: String }) activation: TabsActivation = "manual";
@@ -25,12 +26,10 @@ export class StellarTabs extends LitElement {
     css`
       :host {
         display: block;
-        color: var(--stellar-foreground);
       }
 
       [role="tablist"] {
         display: flex;
-        gap: 4px;
       }
 
       :host([orientation="vertical"]) [role="tablist"] {
@@ -176,9 +175,3 @@ export class StellarTabs extends LitElement {
     return undefined;
   }
 }
-
-if (typeof customElements !== "undefined" && !customElements.get("stellar-tabs")) {
-  customElements.define("stellar-tabs", StellarTabs);
-}
-
-export { StellarTab };
