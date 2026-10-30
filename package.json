@@ -1,6 +1,6 @@
 {
   "name": "l2d-viewer",
-  "version": "2026.10.30.1",
+  "version": "2026.10.30",
   "type": "module",
   "description": "Live2D viewer web component",
   "repository": {
