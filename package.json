@@ -5,7 +5,7 @@
   "description": "Live2D viewer web component",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ParasailNumerous/l2d-viewer.git"
+    "url": "git+https://github.com/StellaSoraWiki/l2d-viewer.git"
   },
   "main": "./dist/live2d-viewer.js",
   "module": "./dist/live2d-viewer.js",
