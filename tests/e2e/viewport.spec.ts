@@ -34,6 +34,36 @@ test.describe('Viewport interactions', () => {
     await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeLessThan(before * 1.5);
   });
 
+  test('mouse wheel zoom keeps the model point under the cursor anchored', async ({ page }) => {
+    await loadFixture(page);
+    const viewer = page.getByTestId('viewer');
+
+    const cursor = await viewer.evaluate((el: Live2DViewer) => {
+      const vp = el.shadowRoot!.querySelector('#viewport') as HTMLElement;
+      const r = vp.getBoundingClientRect();
+      return { x: r.left + r.width * 0.3, y: r.top + r.height * 0.35 };
+    });
+
+    const sample = (point: { x: number; y: number }) =>
+      viewer.evaluate((el: Live2DViewer, p) => {
+        const model = (el as unknown as {
+          currentModel: { toLocal: (point: { x: number; y: number }) => { x: number; y: number } };
+        }).currentModel;
+        const r = el.getBoundingClientRect();
+        const local = model.toLocal({ x: p.x - r.left, y: p.y - r.top });
+        return { x: local.x, y: local.y, scale: el.scale };
+      }, point);
+
+    const before = await sample(cursor);
+    await page.mouse.move(cursor.x, cursor.y);
+    await page.mouse.wheel(0, -200);
+    await expect.poll(async () => await viewer.evaluate((el: Live2DViewer) => el.scale)).toBeGreaterThan(before.scale);
+    const after = await sample(cursor);
+
+    expect(Math.abs(after.x - before.x)).toBeLessThan(2);
+    expect(Math.abs(after.y - before.y)).toBeLessThan(2);
+  });
+
   test('keyboard pan and zoom', async ({ page }) => {
     await loadFixture(page);
     const viewer = page.getByTestId('viewer');
