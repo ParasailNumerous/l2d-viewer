@@ -51,14 +51,16 @@ export class StellarTileItem extends LitElement {
         text-align: center;
         cursor: pointer;
         touch-action: manipulation;
-        &:hover:not(:disabled) {
-          background: color-mix(
-            in oklab,
-            transparent,
-            currentColor var(--stellar-hover-mix)
-          );
+        @media (hover: hover) {
+          &:hover:not(:disabled) {
+            background: color-mix(
+              in oklab,
+              transparent,
+              currentColor var(--stellar-hover-mix)
+            );
+          }
         }
-  
+        
         &:active:not(:disabled) {
           background: color-mix(
             in oklab,
