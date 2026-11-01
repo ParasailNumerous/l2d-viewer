@@ -1,0 +1,73 @@
+@layer stellar.tokens, stellar.reset, stellar.utilities;
+
+@layer stellar.tokens {
+  :host {
+    --stellar-canvas: #000;
+    --stellar-base: rgb(16 29 63 / 70%);
+    --stellar-surface: rgb(255 255 255 / 16%);
+    --stellar-inset: rgb(0 4 13 / 32%);
+    --stellar-foreground: #eff3ff;
+    --stellar-shadow: rgb(16 24 43 / 30%);
+    --stellar-primary: #009ba2;
+    --stellar-on-primary: #fff;
+    --stellar-secondary: #2e4b84;
+    --stellar-on-secondary: #fff;
+    --stellar-radius-base: 4px;
+    --stellar-radius-panel: 16px;
+    --stellar-radius-full: 999px;
+    --stellar-hover-mix: 8%;
+    --stellar-active-mix: 12%;
+    --stellar-focus-ring-width: 2px;
+    --stellar-focus-ring-offset: 2px;
+    --stellar-min-touch-target: 36px;
+    --stellar-min-dense-touch-target: 24px;
+    --stellar-elevation-1-shadow: 0 2px 1px -1px var(--stellar-shadow);
+    --stellar-elevation-1-blur: 12px;
+    --stellar-elevation-2-shadow: 0 3px 3px -2px var(--stellar-shadow);
+    --stellar-elevation-2-blur: 16px;
+    --stellar-elevation-3-blur: 20px;
+  }
+
+  @media (pointer: coarse) {
+    :host {
+      --stellar-min-touch-target: 44px;
+      --stellar-min-dense-touch-target: 32px;
+    }
+  }
+}
+
+@layer stellar.reset {
+  :host {
+    color: var(--stellar-foreground);
+    color-scheme: dark;
+  }
+
+  :where(button, input, select, textarea) {
+    font: inherit;
+  }
+
+  :where(button, select, input[type="number"]) {
+    min-block-size: var(--stellar-min-touch-target);
+  }
+}
+
+@layer stellar.utilities {
+  .elevation-1 {
+    box-shadow: var(--stellar-elevation-1-shadow);
+    backdrop-filter: blur(var(--stellar-elevation-1-blur));
+  }
+
+  .elevation-2 {
+    box-shadow: var(--stellar-elevation-2-shadow);
+    backdrop-filter: blur(var(--stellar-elevation-2-blur));
+  }
+
+  .elevation-3 {
+    backdrop-filter: blur(var(--stellar-elevation-3-blur));
+  }
+
+  .focus-ring:focus-visible {
+    outline: var(--stellar-focus-ring-width) solid var(--stellar-primary);
+    outline-offset: var(--stellar-focus-ring-offset);
+  }
+}
